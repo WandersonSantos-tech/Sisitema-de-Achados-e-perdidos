@@ -1,4 +1,4 @@
-# 🔎 OndeTá
+# OndeTá
 
 > Sistema de Achados e Perdidos — Web, Mobile e API
 
@@ -10,23 +10,23 @@ Funcionários possuem uma área administrativa para gerenciamento dos objetos en
 
 ---
 
-## 📌 Sobre o projeto
+## Sobre o projeto
 
 O OndeTá está sendo desenvolvido como projeto acadêmico, utilizando uma arquitetura separada em:
 
-- 🌐 Frontend Web
-- 📱 Aplicação Mobile
-- ⚙️ Backend / API REST
-- 🗄️ Banco de Dados PostgreSQL
-- 🐳 Ambiente Docker
+- Frontend Web
+- Aplicação Mobile
+- Backend / API REST
+- Banco de Dados PostgreSQL
+- Ambiente Docker
 
 A comunicação entre os clientes Web e Mobile é realizada através da mesma API desenvolvida em FastAPI.
 
 ---
 
-# 🛠️ Tecnologias
+# Tecnologias
 
-## 🌐 Frontend Web
+## Frontend Web
 
 - React
 - Vite
@@ -35,14 +35,14 @@ A comunicação entre os clientes Web e Mobile é realizada através da mesma AP
 - Fetch API
 - CSS
 
-## 📱 Mobile
+## Mobile
 
 - React Native
 - Expo
 - JavaScript
 - AsyncStorage
 
-## ⚙️ Backend
+## Backend
 
 - Python
 - FastAPI
@@ -55,11 +55,11 @@ A comunicação entre os clientes Web e Mobile é realizada através da mesma AP
 - Alembic
 - AsyncPG
 
-## 🗄️ Banco de Dados
+## Banco de Dados
 
 - PostgreSQL
 
-## 🐳 Infraestrutura
+## Infraestrutura
 
 - Docker
 - Docker Compose
@@ -72,7 +72,7 @@ A comunicação entre os clientes Web e Mobile é realizada através da mesma AP
 
 ---
 
-# 🏗️ Arquitetura
+# Arquitetura
 
 O projeto segue uma arquitetura onde os dois clientes consomem a mesma API.
 
@@ -108,11 +108,11 @@ O projeto segue uma arquitetura onde os dois clientes consomem a mesma API.
 
 ---
 
-# 👥 Perfis do sistema
+# Perfis do sistema
 
 O OndeTá possui dois perfis principais.
 
-## 👤 Usuário
+## Usuário
 
 O usuário poderá utilizar a versão Web ou Mobile para:
 
@@ -130,7 +130,7 @@ O usuário poderá utilizar a versão Web ou Mobile para:
 - Acompanhar o andamento da solicitação
 - Gerenciar sua conta
 
-## 🧑‍💼 Funcionário
+## Funcionário
 
 O funcionário utilizará principalmente a versão Web para:
 
@@ -147,7 +147,7 @@ O funcionário utilizará principalmente a versão Web para:
 
 ---
 
-# 🔐 Autenticação
+# Autenticação
 
 A autenticação utiliza **JWT (JSON Web Token)**.
 
@@ -186,7 +186,7 @@ ADMIN
 
 ---
 
-# 🔗 Rotas de autenticação
+#  Rotas de autenticação
 
 A API utiliza como prefixo:
 
@@ -232,7 +232,7 @@ POST /api/v1/auth/reset-password
 
 ---
 
-# 🗃️ Principais entidades
+# Principais entidades
 
 O banco de dados foi estruturado utilizando SQLAlchemy.
 
@@ -365,7 +365,7 @@ Permite registrar denúncias ou ocorrências relacionadas a usuários ou objetos
 
 ---
 
-# 📁 Estrutura do projeto
+# Estrutura do projeto
 
 A estrutura geral segue o padrão:
 
@@ -420,7 +420,7 @@ OndeTa/
 
 ---
 
-# 🚀 Executando o projeto
+# Executando o projeto
 
 ## 1. Clonar o repositório
 
@@ -436,7 +436,7 @@ cd <PASTA_DO_REPOSITORIO>
 
 ---
 
-# ⚙️ Executando o Backend
+#  Executando o Backend
 
 Entre na pasta:
 
@@ -460,7 +460,7 @@ cp .env.example .env
 
 ---
 
-## 🐳 Executar com Docker
+## Executar com Docker
 
 Com o Docker Desktop aberto:
 
@@ -484,7 +484,7 @@ achados-mailpit
 
 ---
 
-## 🗄️ Executar as migrations
+## Executar as migrations
 
 Depois que os containers estiverem funcionando:
 
@@ -494,7 +494,7 @@ docker compose exec api alembic upgrade head
 
 ---
 
-## 🔍 Logs da API
+## Logs da API
 
 Para acompanhar os logs:
 
@@ -512,7 +512,7 @@ Isso não encerra os containers.
 
 ---
 
-# 🌐 API
+# API
 
 Com o backend executando, a API estará disponível localmente na porta:
 
@@ -551,7 +551,7 @@ Resposta esperada:
 
 ---
 
-# 📧 Mailpit
+# Mailpit
 
 Durante o desenvolvimento, o projeto utiliza **Mailpit** para testar o envio de e-mails.
 
@@ -577,7 +577,7 @@ Assim não é necessário enviar e-mails reais durante o desenvolvimento local.
 
 ---
 
-# 💻 Executando o Frontend Web
+# Executando o Frontend Web
 
 Abra outro terminal e entre na pasta:
 
@@ -605,7 +605,7 @@ http://localhost:5173
 
 ---
 
-# 🔌 Configuração da API no Frontend
+# Configuração da API no Frontend
 
 O frontend utiliza uma variável de ambiente para definir a URL do backend.
 
@@ -629,7 +629,7 @@ Authorization: Bearer <access_token>
 
 ---
 
-# 📱 Executando o Mobile
+# Executando o Mobile
 
 Entre na pasta da aplicação Mobile:
 
@@ -665,7 +665,7 @@ A aplicação poderá ser executada através do:
 
 ---
 
-# 🎨 Identidade visual
+# Identidade visual
 
 A interface do **OndeTá** utiliza principalmente:
 
@@ -684,7 +684,7 @@ A identidade visual busca transmitir:
 
 ---
 
-# 🖥️ Telas Web
+# Telas Web
 
 ## Autenticação
 
@@ -725,7 +725,7 @@ Entre as telas previstas:
 
 ---
 
-# 🔄 Fluxo principal
+# Fluxo principal
 
 ```text
                     ONDETÁ
@@ -759,7 +759,7 @@ Entre as telas previstas:
 
 ---
 
-# 🔒 Segurança
+# Segurança
 
 O projeto utiliza ou prevê:
 
@@ -774,7 +774,7 @@ O projeto utiliza ou prevê:
 
 ---
 
-# ⚠️ Arquivos que não devem ser enviados ao Git
+# Arquivos que não devem ser enviados ao Git
 
 Nunca faça commit de:
 
@@ -807,7 +807,7 @@ Nunca compartilhe a pasta `venv`.
 
 ---
 
-# 🌿 Organização das Branches
+# Organização das Branches
 
 Exemplo de organização:
 
@@ -855,7 +855,7 @@ git push -u origin feature/nome-da-feature
 
 ---
 
-# 📝 Padrão de commits
+# Padrão de commits
 
 O projeto pode utilizar Conventional Commits.
 
@@ -891,7 +891,7 @@ style: atualiza layout da tela de login
 
 ---
 
-# 🧪 Status atual
+# Status atual
 
 ### Backend
 
@@ -939,7 +939,7 @@ style: atualiza layout da tela de login
 
 ---
 
-# 🗺️ Próximas etapas
+# Próximas etapas
 
 Entre as próximas funcionalidades previstas estão:
 
@@ -959,7 +959,7 @@ Entre as próximas funcionalidades previstas estão:
 
 ---
 
-# 👨‍💻 Desenvolvimento
+# Desenvolvimento
 
 Projeto desenvolvido em equipe como parte de um projeto acadêmico de Sistemas de Informação.
 
@@ -985,7 +985,7 @@ PostgreSQL
 
 ---
 
-# 📄 Licença
+# Licença
 
 Projeto desenvolvido para fins acadêmicos e educacionais.
 
