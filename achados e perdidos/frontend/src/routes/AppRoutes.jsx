@@ -5,31 +5,40 @@ import {
 } from "react-router-dom";
 
 import LoginPage from "../pages/auth/LoginPage";
+import CadastroPage from "../pages/auth/CadastroPage";
+import RecuperarSenhaPage from "../pages/auth/RecuperarSenhaPage";
+import RedefinirSenhaPage from "../pages/auth/RedefinirSenhaPage";
 
-function AlunoHome() {
-  return (
-    <div style={{ padding: "40px" }}>
-      <h1>Área do Aluno</h1>
-      <p>Login realizado com sucesso.</p>
-    </div>
-  );
-}
+import CategoriesPage from "../pages/funcionario/CategoriaPage/CategoriesPage";
+
+import UsuarioHome from "../pages/usuario/UsuarioHome";
+
 
 function FuncionarioDashboard() {
   return (
     <div style={{ padding: "40px" }}>
       <h1>Dashboard do Funcionário</h1>
-      <p>Login realizado com sucesso.</p>
+
+      <p>
+        Login realizado com sucesso.
+      </p>
     </div>
   );
 }
 
+
 function AppRoutes() {
   return (
     <Routes>
+
       <Route
         path="/"
-        element={<Navigate to="/login" replace />}
+        element={
+          <Navigate
+            to="/login"
+            replace
+          />
+        }
       />
 
       <Route
@@ -38,8 +47,23 @@ function AppRoutes() {
       />
 
       <Route
-        path="/aluno/home"
-        element={<AlunoHome />}
+        path="/cadastro"
+        element={<CadastroPage />}
+      />
+
+      <Route
+        path="/recuperar-senha"
+        element={<RecuperarSenhaPage />}
+      />
+
+      <Route
+        path="/redefinir-senha"
+        element={<RedefinirSenhaPage />}
+      />
+
+      <Route
+        path="/usuario/home"
+        element={<UsuarioHome />}
       />
 
       <Route
@@ -48,9 +72,20 @@ function AppRoutes() {
       />
 
       <Route
-        path="*"
-        element={<Navigate to="/login" replace />}
+        path="/funcionario/categorias"
+        element={<CategoriesPage />}
       />
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/login"
+            replace
+          />
+        }
+      />
+
     </Routes>
   );
 }

@@ -14,75 +14,80 @@ function LoginPage() {
 
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
+async function handleSubmit(event) {
+  event.preventDefault();
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  setErro("");
 
-    setErro("");
+  if (!email.trim() || !senha.trim()) {
+    setErro("Informe seu e-mail e sua senha.");
+    return;
+  }
 
-    if (!email.trim() || !senha.trim()) {
-      setErro("Informe seu e-mail e sua senha.");
+  try {
+    setCarregando(true);
+
+    const { usuario } = await authService.login(
+      email,
+      senha
+    );
+
+    console.log("LOGIN REALIZADO COM SUCESSO");
+    console.log("Usuário:", usuario);
+    console.log("Token:", authService.getToken());
+    console.log("Role:", usuario.role);
+
+    // Login pela área de funcionário
+    if (modoFuncionario) {
+      if (usuario.role !== "ADMIN") {
+        authService.logout();
+
+        setErro(
+          "Esta conta não possui permissão de funcionário."
+        );
+
+        return;
+      }
+
+      navigate("/funcionario/categorias");
       return;
     }
 
-    try {
-      setCarregando(true);
-
-      const { usuario } = await authService.login(
-        email.trim(),
-        senha
-      );
-
-      const tipoUsuario =
-        usuario.tipoUsuario ||
-        usuario.tipo_usuario ||
-        usuario.tipo;
-
-      if (modoFuncionario) {
-        if (tipoUsuario !== "FUNCIONARIO") {
-          authService.logout();
-
-          setErro(
-            "Esta conta não possui permissão de funcionário."
-          );
-
-          return;
-        }
-
-        navigate("/funcionario/dashboard");
-        return;
-      }
-
-      if (tipoUsuario === "ALUNO") {
-        navigate("/aluno/home");
-        return;
-      }
-
-      if (tipoUsuario === "FUNCIONARIO") {
-        navigate("/funcionario/dashboard");
-        return;
-      }
-
-      authService.logout();
-
-      setErro("Tipo de usuário não reconhecido.");
-    } catch (error) {
-      setErro(
-        error.message ||
-          "Não foi possível realizar o acesso."
-      );
-    } finally {
-      setCarregando(false);
+    // Login normal do usuário
+    if (usuario.role === "USER") {
+      navigate("/usuario/home");
+      return;
     }
-  }
 
-  function alterarModo() {
-    setModoFuncionario(!modoFuncionario);
+    // Caso um ADMIN faça login pela tela normal
+    if (usuario.role === "ADMIN") {
+      navigate("/funcionario/categorias");
+      return;
+    }
 
-    setEmail("");
-    setSenha("");
-    setErro("");
+    authService.logout();
+    setErro("Tipo de usuário não reconhecido.");
+
+  } catch (error) {
+    console.error("ERRO AO REALIZAR LOGIN:");
+    console.error(error);
+
+    setErro(
+      error.message ||
+        "Não foi possível realizar o acesso."
+    );
+
+  } finally {
+    setCarregando(false);
   }
+}
+function alterarModo() {
+  setModoFuncionario(!modoFuncionario);
+
+  setEmail("");
+  setSenha("");
+  setErro("");
+}
 
   return (
     <main className="login-page">
@@ -93,14 +98,20 @@ function LoginPage() {
           </div>
 
           <div>
-            <h1>Portal de Achados e Perdidos</h1>
+            <div className="brand-name">
+            <h1>
+              Onde<span>Tá</span>
+            </h1>
+
+            <p>Achados & Perdidos</p>
+          </div>
             <p>Sistema de Achados e Perdidos</p>
           </div>
         </div>
 
         <div className="presentation-content">
           <span className="portal-badge">
-            ACHADOS E PERDIDOS
+             PORTAL OndeTá
           </span>
 
           <h2>
@@ -348,13 +359,13 @@ function LoginPage() {
             <div className="employee-button-text">
               <strong>
                 {modoFuncionario
-                  ? "Voltar para acesso do aluno"
+                 ? "Voltar para acesso do usuário"
                   : "Sou funcionário"}
               </strong>
 
               <span>
                 {modoFuncionario
-                  ? "Retornar ao portal do aluno"
+                  ? "Retornar ao portal do usuário"
                   : "Acessar área interna de atendimento"}
               </span>
             </div>

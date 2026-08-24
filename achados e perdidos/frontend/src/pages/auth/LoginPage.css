@@ -810,3 +810,39 @@ button {
     align-items: flex-end;
   }
 }
+
+.brand-name h1 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+}
+
+.brand-name h1 span {
+  color: #5da9ff;
+}
+
+.brand-name p {
+  margin: 3px 0 0;
+
+  color: #a9c8f5;
+
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mobile-brand strong {
+  color: #071d49;
+
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.mobile-brand strong::after {
+  content: "Tá";
+
+  color: #1557b0;
+}
