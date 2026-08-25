@@ -11,7 +11,7 @@ import RedefinirSenhaPage from "../pages/auth/RedefinirSenhaPage";
 
 import CategoriesPage from "../pages/funcionario/CategoriaPage/CategoriesPage";
 
-import UsuarioHome from "../pages/usuario/UsuarioHome";
+import UsuarioHome from "../pages/Usuario/UsuarioHome";
 
 
 function FuncionarioDashboard() {
