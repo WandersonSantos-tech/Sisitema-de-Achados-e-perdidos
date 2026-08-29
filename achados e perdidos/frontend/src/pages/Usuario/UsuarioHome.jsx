@@ -5,19 +5,8 @@ import { authService } from "../../services/authService";
 
 import "./UsuarioHome.css";
 
-
 function Icon({ name, size = 22 }) {
   const icons = {
-    search: (
-      <path
-        d="M21 21l-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-
     plus: (
       <>
         <path
@@ -46,24 +35,6 @@ function Icon({ name, size = 22 }) {
         />
         <path
           d="M10 21h4"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </>
-    ),
-
-    user: (
-      <>
-        <circle
-          cx="12"
-          cy="8"
-          r="4"
-          stroke="currentColor"
-          strokeWidth="2"
-        />
-        <path
-          d="M4 21c.8-4 3.4-6 8-6s7.2 2 8 6"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
@@ -105,15 +76,6 @@ function Icon({ name, size = 22 }) {
       </>
     ),
 
-    message: (
-      <path
-        d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    ),
-
     history: (
       <>
         <path
@@ -152,10 +114,24 @@ function Icon({ name, size = 22 }) {
       />
     ),
 
-    menu: (
+    match: (
       <>
+        <circle
+          cx="8"
+          cy="8"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <circle
+          cx="16"
+          cy="16"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
         <path
-          d="M4 6h16M4 12h16M4 18h16"
+          d="m11 11 2 2"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
@@ -163,15 +139,49 @@ function Icon({ name, size = 22 }) {
       </>
     ),
 
-    close: (
+    shield: (
       <>
         <path
-          d="m6 6 12 12M18 6 6 18"
+          d="M12 3 20 6v5c0 5.1-3.4 8.7-8 10-4.6-1.3-8-4.9-8-10V6l8-3Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m9 12 2 2 4-4"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </>
+    ),
+
+    message: (
+      <path
+        d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    ),
+
+    menu: (
+      <path
+        d="M4 6h16M4 12h16M4 18h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    ),
+
+    close: (
+      <path
+        d="m6 6 12 12M18 6 6 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     ),
   };
 
@@ -188,93 +198,61 @@ function Icon({ name, size = 22 }) {
   );
 }
 
-
 function UsuarioHome() {
   const navigate = useNavigate();
 
   const usuario = authService.getUsuario();
 
-  const [pesquisa, setPesquisa] = useState("");
   const [menuAberto, setMenuAberto] = useState(false);
 
-
-  const itensEncontrados = [
+  const meusItens = [
     {
       id: 1,
-      categoria: "Eletrônicos",
-      titulo: "Fone de ouvido preto",
-      local: "Bloco B",
-      data: "Hoje, 14:20",
-      status: "ENCONTRADO",
-      emoji: "",
+      categoria: "Acessórios",
+      titulo: "Mochila preta",
+      local: "Bloco A",
+      data: "27/08/2026",
+      status: "POSSÍVEL CORRESPONDÊNCIA",
+      statusClass: "match",
     },
-
     {
       id: 2,
-      categoria: "Documentos",
-      titulo: "Carteira com documentos",
+      categoria: "Eletrônicos",
+      titulo: "Fone de ouvido Bluetooth",
       local: "Biblioteca",
-      data: "Hoje, 11:05",
-      status: "ENCONTRADO",
-      emoji: "",
-    },
-
-    {
-      id: 3,
-      categoria: "Acessórios",
-      titulo: "Chaveiro com três chaves",
-      local: "Estacionamento",
-      data: "Ontem, 18:40",
-      status: "ENCONTRADO",
-      emoji: "",
+      data: "25/08/2026",
+      status: "PROCURANDO",
+      statusClass: "searching",
     },
   ];
 
-
-  function pesquisar(event) {
-    event.preventDefault();
-
-    navigate(
-      `/usuario/pesquisar?q=${encodeURIComponent(
-        pesquisa.trim()
-      )}`
-    );
+  function navegar(rota) {
+    setMenuAberto(false);
+    navigate(rota);
   }
-
 
   function sair() {
     authService.logout();
-
     navigate("/login");
   }
 
-
   return (
     <div className="usuario-home">
-
       <header className="home-navbar">
-
-        <div
+        <button
           className="home-brand"
-          onClick={() =>
-            navigate("/usuario/home")
-          }
+          onClick={() => navegar("/usuario/home")}
         >
-          <div className="home-brand-logo">
-            OT
-          </div>
+          <div className="home-brand-logo">OT</div>
 
-          <div>
+          <div className="home-brand-text">
             <strong>
               Onde<span>Tá</span>
             </strong>
 
-            <small>
-              Achados & Perdidos
-            </small>
+            <small>Achados & Perdidos</small>
           </div>
-        </div>
-
+        </button>
 
         <nav
           className={
@@ -285,9 +263,7 @@ function UsuarioHome() {
         >
           <button
             className="nav-item active"
-            onClick={() =>
-              navigate("/usuario/home")
-            }
+            onClick={() => navegar("/usuario/home")}
           >
             Início
           </button>
@@ -295,46 +271,36 @@ function UsuarioHome() {
           <button
             className="nav-item"
             onClick={() =>
-              navigate(
-                "/usuario/pesquisar"
-              )
+              navegar("/usuario/meus-itens")
             }
           >
-            Explorar
+            Meus itens perdidos
           </button>
 
           <button
             className="nav-item"
             onClick={() =>
-              navigate(
-                "/usuario/publicacoes"
-              )
+              navegar("/usuario/correspondencias")
             }
           >
-            Minhas publicações
+            Correspondências
           </button>
 
           <button
             className="nav-item"
             onClick={() =>
-              navigate(
-                "/usuario/solicitacoes"
-              )
+              navegar("/usuario/solicitacoes")
             }
           >
             Solicitações
           </button>
         </nav>
 
-
         <div className="navbar-actions">
-
           <button
-            className="navbar-icon-button notification-button"
+            className="navbar-icon-button"
             onClick={() =>
-              navigate(
-                "/usuario/notificacoes"
-              )
+              navegar("/usuario/notificacoes")
             }
             aria-label="Notificações"
           >
@@ -345,11 +311,10 @@ function UsuarioHome() {
             </span>
           </button>
 
-
           <button
             className="navbar-profile"
             onClick={() =>
-              navigate("/usuario/perfil")
+              navegar("/usuario/perfil")
             }
           >
             <div className="profile-avatar">
@@ -360,49 +325,33 @@ function UsuarioHome() {
 
             <div className="profile-text">
               <strong>
-                {usuario?.name ||
-                  "Usuário"}
+                {usuario?.name || "Usuário"}
               </strong>
 
-              <span>
-                Minha conta
-              </span>
+              <span>Minha conta</span>
             </div>
           </button>
-
 
           <button
             className="mobile-menu-button"
             onClick={() =>
-              setMenuAberto(
-                !menuAberto
-              )
+              setMenuAberto(!menuAberto)
             }
+            aria-label="Abrir menu"
           >
             <Icon
-              name={
-                menuAberto
-                  ? "close"
-                  : "menu"
-              }
+              name={menuAberto ? "close" : "menu"}
             />
           </button>
-
         </div>
-
       </header>
 
-
       <main className="home-main">
-
         <section className="home-hero">
-
           <div className="hero-decoration hero-decoration-one" />
           <div className="hero-decoration hero-decoration-two" />
 
-
           <div className="hero-content">
-
             <span className="hero-eyebrow">
               PORTAL ONDETÁ
             </span>
@@ -411,8 +360,7 @@ function UsuarioHome() {
               Olá,{" "}
               <span>
                 {usuario?.name
-                  ?.split(" ")[0] ||
-                  "Usuário"}
+                  ?.split(" ")[0] || "Usuário"}
               </span>
               .
             </h1>
@@ -420,173 +368,107 @@ function UsuarioHome() {
             <h2>
               Perdeu alguma coisa?
               <br />
-              A gente ajuda você a
-              encontrar.
+              Conte para o OndeTá.
             </h2>
 
             <p>
-              Pesquise entre os objetos
-              encontrados ou registre o que
-              você perdeu. O OndeTá cruza
-              informações para encontrar
-              possíveis correspondências.
+              Cadastre as informações do objeto que
+              você perdeu. O sistema compara seu
+              registro com os objetos encontrados
+              cadastrados pela equipe responsável e
+              avisa quando existir uma possível
+              correspondência.
             </p>
 
-
-            <form
-              className="hero-search"
-              onSubmit={pesquisar}
-            >
-
-              <div className="hero-search-icon">
-                <Icon name="search" />
-              </div>
-
-              <input
-                type="text"
-                value={pesquisa}
-                onChange={(event) =>
-                  setPesquisa(
-                    event.target.value
-                  )
-                }
-                placeholder="O que você está procurando?"
-              />
-
-              <button type="submit">
-                Pesquisar
-
-                <Icon
-                  name="arrow"
-                  size={18}
-                />
-              </button>
-
-            </form>
-
-
-            <div className="popular-searches">
-              <span>
-                Pesquisas rápidas:
-              </span>
-
+            <div className="hero-actions">
               <button
+                className="hero-primary-button"
                 onClick={() =>
-                  navigate(
-                    "/usuario/pesquisar?q=celular"
-                  )
+                  navegar("/usuario/item-perdido")
                 }
               >
-                Celular
+                <Icon name="plus" size={20} />
+
+                Registrar objeto perdido
+
+                <Icon name="arrow" size={18} />
               </button>
 
               <button
+                className="hero-secondary-button"
                 onClick={() =>
-                  navigate(
-                    "/usuario/pesquisar?q=documentos"
-                  )
+                  navegar("/usuario/meus-itens")
                 }
               >
-                Documentos
-              </button>
+                <Icon name="package" size={20} />
 
-              <button
-                onClick={() =>
-                  navigate(
-                    "/usuario/pesquisar?q=chaves"
-                  )
-                }
-              >
-                Chaves
-              </button>
-
-              <button
-                onClick={() =>
-                  navigate(
-                    "/usuario/pesquisar?q=mochila"
-                  )
-                }
-              >
-                Mochila
+                Ver meus itens
               </button>
             </div>
 
+            <div className="hero-security">
+              <Icon name="shield" size={18} />
+
+              <span>
+                Os objetos encontrados não ficam
+                expostos publicamente.
+              </span>
+            </div>
           </div>
 
-
           <div className="hero-status-card">
-
             <div className="status-illustration">
+              <div className="status-orbit orbit-one" />
+              <div className="status-orbit orbit-two" />
 
               <div className="status-circle">
-                <Icon
-                  name="search"
-                  size={39}
-                />
+                <Icon name="match" size={42} />
               </div>
 
               <div className="floating-badge floating-badge-one">
-                <Icon
-                  name="location"
-                  size={17}
-                />
-
-                Local identificado
+                <Icon name="package" size={17} />
+                Item cadastrado
               </div>
 
               <div className="floating-badge floating-badge-two">
-                <Icon
-                  name="check"
-                  size={17}
-                />
-
+                <Icon name="check" size={17} />
                 Correspondência
               </div>
-
             </div>
-
 
             <div className="status-card-footer">
-              <span>
-                Sistema inteligente
-              </span>
+              <span>Correspondência automática</span>
 
               <strong>
-                Encontrar ficou mais
-                simples.
+                Você cadastra. O sistema procura.
               </strong>
             </div>
-
           </div>
-
         </section>
 
-
         <section className="quick-actions-section">
-
           <div className="section-heading">
-
             <div>
               <span className="section-eyebrow">
                 ACESSO RÁPIDO
               </span>
 
               <h2>
-                O que você precisa fazer?
+                Acompanhe seus objetos
               </h2>
-            </div>
 
+              <p>
+                Tudo relacionado aos seus registros
+                fica concentrado em um só lugar.
+              </p>
+            </div>
           </div>
 
-
           <div className="quick-actions-grid">
-
             <button
               className="quick-action primary"
               onClick={() =>
-                navigate(
-                  "/usuario/item-perdido"
-                )
+                navegar("/usuario/item-perdido")
               }
             >
               <div className="quick-action-icon">
@@ -595,389 +477,371 @@ function UsuarioHome() {
 
               <div>
                 <strong>
-                  Perdi um objeto
+                  Registrar objeto perdido
                 </strong>
 
                 <p>
-                  Registre um item perdido
-                  com local, data, fotos e
-                  características.
+                  Informe local, data, categoria,
+                  fotos e características do item.
                 </p>
               </div>
 
               <span className="quick-arrow">
-                <Icon
-                  name="arrow"
-                  size={20}
-                />
+                <Icon name="arrow" size={20} />
               </span>
             </button>
-
 
             <button
               className="quick-action"
               onClick={() =>
-                navigate(
-                  "/usuario/pesquisar"
-                )
+                navegar("/usuario/meus-itens")
               }
             >
               <div className="quick-action-icon">
-                <Icon name="search" />
+                <Icon name="package" />
               </div>
 
               <div>
                 <strong>
-                  Procurar objetos
+                  Meus itens perdidos
                 </strong>
 
                 <p>
-                  Pesquise itens encontrados
-                  utilizando filtros e
-                  palavras-chave.
+                  Consulte somente os objetos que
+                  foram cadastrados por você.
                 </p>
               </div>
 
               <span className="quick-arrow">
-                <Icon
-                  name="arrow"
-                  size={20}
-                />
+                <Icon name="arrow" size={20} />
               </span>
             </button>
-<button
-  className="quick-action"
-  onClick={() =>
-    navigate(
-      "/usuario/solicitacoes"
-    )
-  }
->
-  <div className="quick-action-icon">
-    <Icon name="history" />
-  </div>
 
-  <div>
-    <strong>
-      Minhas solicitações
-    </strong>
-
-    <p>
-      Acompanhe pedidos de devolução, validações e o andamento dos seus objetos.
-    </p>
-  </div>
-
-  <span className="quick-arrow">
-    <Icon
-      name="arrow"
-      size={20}
-    />
-  </span>
-</button>
             <button
               className="quick-action"
               onClick={() =>
-                navigate(
-                  "/usuario/notificacoes"
-                )
+                navegar("/usuario/correspondencias")
               }
             >
               <div className="quick-action-icon">
-                <Icon name="bell" />
+                <Icon name="match" />
               </div>
 
               <div>
                 <strong>
-                  Notificações
+                  Correspondências
                 </strong>
 
                 <p>
-                  Confira correspondências,
-                  solicitações e atualizações.
+                  Veja possíveis combinações
+                  encontradas automaticamente pelo
+                  sistema.
                 </p>
               </div>
 
               <span className="quick-arrow">
-                <Icon
-                  name="arrow"
-                  size={20}
-                />
+                <Icon name="arrow" size={20} />
               </span>
             </button>
 
+            <button
+              className="quick-action"
+              onClick={() =>
+                navegar("/usuario/solicitacoes")
+              }
+            >
+              <div className="quick-action-icon">
+                <Icon name="history" />
+              </div>
+
+              <div>
+                <strong>
+                  Minhas solicitações
+                </strong>
+
+                <p>
+                  Acompanhe validações, retirada e
+                  andamento das suas solicitações.
+                </p>
+              </div>
+
+              <span className="quick-arrow">
+                <Icon name="arrow" size={20} />
+              </span>
+            </button>
           </div>
-
         </section>
-
-
-        <section className="match-section">
-
+                <section className="match-section">
           <div className="match-card">
-
             <div className="match-card-content">
-
               <span className="match-label">
-                POSSÍVEL CORRESPONDÊNCIA
+                NOVA CORRESPONDÊNCIA
               </span>
 
               <h2>
-                Podemos ter encontrado
-                algo seu.
+                Podemos ter encontrado algo seu.
               </h2>
 
               <p>
-                Encontramos uma publicação
-                com características parecidas
-                com um item perdido cadastrado
-                por você.
+                Um objeto cadastrado pela equipe
+                possui características semelhantes
+                à mochila que você informou como
+                perdida.
               </p>
 
+              <div className="match-comparison">
+                <div className="match-lost-item">
+                  <div className="match-object-icon">
+                    <Icon name="package" size={25} />
+                  </div>
 
-              <div className="match-object">
+                  <div>
+                    <span>SEU ITEM PERDIDO</span>
 
-                <div className="match-object-image">
-                
+                    <strong>Mochila preta</strong>
+
+                    <p>
+                      Registrada em 27/08/2026
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <span>
-                    87% compatível
-                  </span>
-
-                  <strong>
-                    Mochila preta
-                  </strong>
-
-                  <p>
-                    Encontrada próximo ao
-                    Bloco A
-                  </p>
+                <div className="match-connector">
+                  <span />
+                  <div>
+                    <Icon name="match" size={20} />
+                  </div>
+                  <span />
                 </div>
 
+                <div className="match-found-item">
+                  <div className="match-object-icon found">
+                    <Icon name="check" size={25} />
+                  </div>
+
+                  <div>
+                    <span>
+                      POSSÍVEL CORRESPONDÊNCIA
+                    </span>
+
+                    <strong>
+                      Objeto compatível
+                    </strong>
+
+                    <p>
+                      Detalhes protegidos até a
+                      validação
+                    </p>
+                  </div>
+                </div>
               </div>
 
+              <div className="match-actions">
+                <button
+                  onClick={() =>
+                    navegar(
+                      "/usuario/correspondencias"
+                    )
+                  }
+                >
+                  Ver correspondência
 
-              <button
-                onClick={() =>
-                  navigate(
-                    "/usuario/correspondencias"
-                  )
-                }
-              >
-                Ver correspondência
+                  <Icon name="arrow" size={18} />
+                </button>
 
-                <Icon
-                  name="arrow"
-                  size={18}
-                />
-              </button>
+                <div className="protected-info">
+                  <Icon name="shield" size={16} />
 
+                  Informações protegidas
+                </div>
+              </div>
             </div>
-
 
             <div className="match-score">
-
               <div className="score-ring">
                 <strong>
-                  87
-                  <small>%</small>
+                  87<small>%</small>
                 </strong>
 
-                <span>
-                  compatível
-                </span>
+                <span>compatível</span>
               </div>
 
+              <p>
+                Compatibilidade calculada com base
+                nos dados dos dois registros.
+              </p>
             </div>
-
           </div>
-
         </section>
 
-
         <section className="dashboard-grid">
-
-          <div className="latest-items">
-
+          <div className="my-items-card">
             <div className="section-heading compact">
-
               <div>
                 <span className="section-eyebrow">
-                  RECENTES
+                  MEUS REGISTROS
                 </span>
 
                 <h2>
-                  Últimos objetos
-                  encontrados
+                  Seus objetos perdidos
                 </h2>
               </div>
-
 
               <button
                 className="view-all-button"
                 onClick={() =>
-                  navigate(
-                    "/usuario/pesquisar"
-                  )
+                  navegar("/usuario/meus-itens")
                 }
               >
                 Ver todos
 
-                <Icon
-                  name="arrow"
-                  size={17}
-                />
+                <Icon name="arrow" size={17} />
               </button>
-
             </div>
-
 
             <div className="items-list">
+              {meusItens.map((item) => (
+                <button
+                  className="lost-item-card"
+                  key={item.id}
+                  onClick={() =>
+                    navegar(
+                      `/usuario/meus-itens/${item.id}`
+                    )
+                  }
+                >
+                  <div className="lost-item-image">
+                    <Icon name="package" size={27} />
+                  </div>
 
-              {itensEncontrados.map(
-                (item) => (
-                  <button
-                    className="found-item-card"
-                    key={item.id}
-                    onClick={() =>
-                      navigate(
-                        `/usuario/item/${item.id}`
-                      )
-                    }
-                  >
-
-                    <div className="found-item-image">
-  {item.image ? (
-    <img
-      src={item.image}
-      alt={item.titulo}
-    />
-  ) : (
-    <Icon name="package" size={26} />
-  )}
-</div>
-
-
-                    <div className="found-item-info">
-
-                      <span className="found-category">
-                        {item.categoria}
-                      </span>
-
-                      <strong>
-                        {item.titulo}
-                      </strong>
-
-
-                      <div className="found-item-meta">
-
-                        <span>
-                          <Icon
-                            name="location"
-                            size={15}
-                          />
-
-                          {item.local}
-                        </span>
-
-                        <span>
-                          {item.data}
-                        </span>
-
-                      </div>
-
-                    </div>
-
-
-                    <span className="found-status">
-                      Encontrado
+                  <div className="lost-item-info">
+                    <span className="lost-category">
+                      {item.categoria}
                     </span>
 
-                  </button>
-                )
-              )}
+                    <strong>
+                      {item.titulo}
+                    </strong>
 
+                    <div className="lost-item-meta">
+                      <span>
+                        <Icon
+                          name="location"
+                          size={14}
+                        />
+
+                        {item.local}
+                      </span>
+
+                      <span>
+                        {item.data}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`lost-status ${item.statusClass}`}
+                  >
+                    {item.status}
+                  </span>
+                </button>
+              ))}
             </div>
 
+            <button
+              className="new-lost-item-button"
+              onClick={() =>
+                navegar("/usuario/item-perdido")
+              }
+            >
+              <Icon name="plus" size={19} />
+
+              Registrar outro objeto perdido
+            </button>
           </div>
 
-
           <aside className="home-sidebar">
-
             <div className="summary-card">
-
               <div className="summary-heading">
-                <span>
-                  Minha atividade
-                </span>
+                <div>
+                  <span>Minha atividade</span>
+                  <small>
+                    Visão geral dos seus registros
+                  </small>
+                </div>
 
-                <Icon
-                  name="history"
-                  size={20}
-                />
+                <Icon name="history" size={21} />
               </div>
 
-
               <div className="summary-stat">
-
                 <div>
                   <strong>2</strong>
-
-                  <span>
-                    Itens perdidos
-                  </span>
+                  <span>Itens cadastrados</span>
                 </div>
 
                 <div className="summary-dot lost" />
-
               </div>
 
-
               <div className="summary-stat">
-
                 <div>
                   <strong>1</strong>
-
                   <span>
-                    Em negociação
+                    Possível correspondência
                   </span>
                 </div>
 
                 <div className="summary-dot pending" />
-
               </div>
 
+              <div className="summary-stat">
+                <div>
+                  <strong>1</strong>
+                  <span>Em validação</span>
+                </div>
+
+                <div className="summary-dot validating" />
+              </div>
 
               <div className="summary-stat">
-
                 <div>
                   <strong>3</strong>
-
-                  <span>
-                    Recuperados
-                  </span>
+                  <span>Objetos recuperados</span>
                 </div>
 
                 <div className="summary-dot success" />
-
               </div>
-
 
               <button
                 onClick={() =>
-                  navigate(
-                    "/usuario/publicacoes"
-                  )
+                  navegar("/usuario/meus-itens")
                 }
               >
-                Ver minhas publicações
+                Ver meus itens
               </button>
-
             </div>
 
+            <div className="privacy-card">
+              <div className="privacy-icon">
+                <Icon name="shield" size={24} />
+              </div>
+
+              <div>
+                <span>PRIVACIDADE</span>
+
+                <strong>
+                  Seus dados ajudam na validação.
+                </strong>
+
+                <p>
+                  Características específicas do
+                  objeto são usadas para confirmar a
+                  propriedade e não ficam disponíveis
+                  para outros usuários.
+                </p>
+              </div>
+            </div>
 
             <div className="help-card">
-
               <div className="help-icon">
                 <Icon name="message" />
               </div>
@@ -989,32 +853,127 @@ function UsuarioHome() {
 
                 <p>
                   Consulte orientações sobre
-                  retirada e validação de
-                  propriedade.
+                  correspondência, validação e
+                  retirada.
                 </p>
 
                 <button
                   onClick={() =>
-                    navigate(
-                      "/usuario/ajuda"
-                    )
+                    navegar("/usuario/ajuda")
                   }
                 >
                   Central de ajuda
                 </button>
               </div>
-
             </div>
-
           </aside>
-
         </section>
 
+        <section className="process-section">
+          <div className="section-heading process-heading">
+            <div>
+              <span className="section-eyebrow">
+                COMO FUNCIONA
+              </span>
+
+              <h2>
+                Do registro até a devolução
+              </h2>
+
+              <p>
+                O OndeTá mantém o processo seguro
+                sem expor os objetos encontrados.
+              </p>
+            </div>
+          </div>
+
+          <div className="process-grid">
+            <div className="process-card">
+              <span className="process-number">
+                01
+              </span>
+
+              <div className="process-icon">
+                <Icon name="plus" />
+              </div>
+
+              <strong>
+                Você registra o que perdeu
+              </strong>
+
+              <p>
+                Informe o máximo de detalhes sobre
+                seu objeto perdido.
+              </p>
+            </div>
+
+            <div className="process-line" />
+
+            <div className="process-card">
+              <span className="process-number">
+                02
+              </span>
+
+              <div className="process-icon">
+                <Icon name="match" />
+              </div>
+
+              <strong>
+                O sistema compara
+              </strong>
+
+              <p>
+                Seus dados são cruzados com os
+                objetos cadastrados pela equipe.
+              </p>
+            </div>
+
+            <div className="process-line" />
+
+            <div className="process-card">
+              <span className="process-number">
+                03
+              </span>
+
+              <div className="process-icon">
+                <Icon name="shield" />
+              </div>
+
+              <strong>
+                A propriedade é validada
+              </strong>
+
+              <p>
+                Informações específicas ajudam a
+                comprovar que o objeto é seu.
+              </p>
+            </div>
+
+            <div className="process-line" />
+
+            <div className="process-card">
+              <span className="process-number">
+                04
+              </span>
+
+              <div className="process-icon">
+                <Icon name="check" />
+              </div>
+
+              <strong>
+                Retirada autorizada
+              </strong>
+
+              <p>
+                Após a aprovação, o processo de
+                devolução pode ser concluído.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
-
       <footer className="home-footer">
-
         <div className="footer-brand">
           <div className="home-brand-logo small">
             OT
@@ -1026,20 +985,16 @@ function UsuarioHome() {
             </strong>
 
             <p>
-              Encontre. Recupere.
-              Devolva.
+              Segurança e organização na devolução
+              de objetos.
             </p>
           </div>
         </div>
 
-
         <div className="footer-links">
-
           <button
             onClick={() =>
-              navigate(
-                "/usuario/perfil"
-              )
+              navegar("/usuario/perfil")
             }
           >
             Minha conta
@@ -1047,9 +1002,7 @@ function UsuarioHome() {
 
           <button
             onClick={() =>
-              navigate(
-                "/usuario/ajuda"
-              )
+              navegar("/usuario/ajuda")
             }
           >
             Ajuda
@@ -1058,14 +1011,10 @@ function UsuarioHome() {
           <button onClick={sair}>
             Sair
           </button>
-
         </div>
-
       </footer>
-
     </div>
   );
 }
-
 
 export default UsuarioHome;
