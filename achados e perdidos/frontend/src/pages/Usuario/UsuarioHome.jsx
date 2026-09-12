@@ -231,28 +231,41 @@ function UsuarioHome() {
     navigate(rota);
   }
 
+  function irParaSecao(id) {
+  setMenuAberto(false);
+
+  const elemento = document.getElementById(id);
+
+  if (elemento) {
+    elemento.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+}
+
   function sair() {
     authService.logout();
     navigate("/login");
   }
 
   return (
-    <div className="usuario-home">
-      <header className="home-navbar">
-        <button
-          className="home-brand"
-          onClick={() => navegar("/usuario/home")}
-        >
-          <div className="home-brand-logo">OT</div>
+<div className="usuario-home">
+  <header className="home-navbar">
+    <button
+      className="home-brand"
+      onClick={() => irParaSecao("inicio")}
+    >
+      <div className="home-brand-logo">OT</div>
 
-          <div className="home-brand-text">
-            <strong>
-              Onde<span>Tá</span>
-            </strong>
+      <div className="home-brand-text">
+        <strong>
+          Onde<span>Tá</span>
+        </strong>
 
-            <small>Achados & Perdidos</small>
-          </div>
-        </button>
+        <small>Achados & Perdidos</small>
+      </div>
+    </button>
 
         <nav
           className={
@@ -261,27 +274,23 @@ function UsuarioHome() {
               : "home-navigation"
           }
         >
-          <button
-            className="nav-item active"
-            onClick={() => navegar("/usuario/home")}
-          >
-            Início
-          </button>
+<button
+  className="nav-item active"
+  onClick={() => irParaSecao("inicio")}
+>
+  Início
+</button>
 
           <button
             className="nav-item"
-            onClick={() =>
-              navegar("/usuario/meus-itens")
-            }
+            onClick={() => irParaSecao("meus-itens")}
           >
             Meus itens perdidos
           </button>
 
           <button
             className="nav-item"
-            onClick={() =>
-              navegar("/usuario/correspondencias")
-            }
+            onClick={() => irParaSecao("correspondencias")}
           >
             Correspondências
           </button>
@@ -347,7 +356,10 @@ function UsuarioHome() {
       </header>
 
       <main className="home-main">
-        <section className="home-hero">
+  <section
+    id="inicio"
+    className="home-hero"
+  >
           <div className="hero-decoration hero-decoration-one" />
           <div className="hero-decoration hero-decoration-two" />
 
@@ -571,7 +583,10 @@ function UsuarioHome() {
             </button>
           </div>
         </section>
-                <section className="match-section">
+                <section
+  id="correspondencias"
+  className="match-section"
+>
           <div className="match-card">
             <div className="match-card-content">
               <span className="match-label">
@@ -674,7 +689,10 @@ function UsuarioHome() {
           </div>
         </section>
 
-        <section className="dashboard-grid">
+        <section
+          id="meus-itens"
+          className="dashboard-grid"
+        >
           <div className="my-items-card">
             <div className="section-heading compact">
               <div>

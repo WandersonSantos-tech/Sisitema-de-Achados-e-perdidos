@@ -8,6 +8,9 @@ import LoginPage from "../pages/auth/LoginPage";
 import CadastroPage from "../pages/auth/CadastroPage";
 import RecuperarSenhaPage from "../pages/auth/RecuperarSenhaPage";
 import RedefinirSenhaPage from "../pages/auth/RedefinirSenhaPage";
+import MeusItensPage from "../pages/Usuario/MeusItensPage";
+import CorrespondenciasPage from "../pages/Usuario/CorrespondenciasPage";
+import SolicitacoesPage from "../pages/Usuario/SolicitacoesPage";
 
 import CategoriesPage from "../pages/funcionario/CategoriaPage/CategoriesPage";
 
@@ -75,6 +78,21 @@ function AppRoutes() {
         path="/funcionario/categorias"
         element={<CategoriesPage />}
       />
+
+      <Route
+      path="/usuario/meus-itens"
+      element={<MeusItensPage />}
+    />
+
+    <Route
+      path="/usuario/correspondencias"
+      element={<CorrespondenciasPage />}
+    />
+
+    <Route
+      path="/usuario/solicitacoes"
+      element={<SolicitacoesPage />}
+    />
 
       <Route
         path="*"
