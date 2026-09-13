@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_user, get_db
 from app.core.database import AsyncSessionLocal
 from app.models.enums import NotificationType
@@ -16,6 +15,12 @@ from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpd
 from app.schemas.match import MatchListResponse, MatchResultResponse
 from app.services.matching_service import matching_service
 from app.services.notification_service import notification_service
+from pathlib import Path
+import uuid
+from fastapi import UploadFile, File
+from app.models.item_image import ItemImage
+from app.schemas.item import ItemImageResponse
+from app.core.config import settings
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -104,15 +109,24 @@ async def create_lost_item(
         description=item_in.description,
         secret_details=item_in.secret_details,
         location_name=item_in.location_name,
-        latitude=item_in.latitude,
-        longitude=item_in.longitude,
+        height_cm=item_in.height_cm,
+        width_cm=item_in.width_cm,
         event_date=item_in.event_date,
     )
 
     db.add(new_item)
     await db.flush()  # Garante que o item tenha um ID
     await db.commit()
+    result = await db.execute(
+        select(Item)
+        .options(
+            selectinload(Item.category),
+            selectinload(Item.images),
+        )
+        .where(Item.id == new_item.id)
+    )
 
+    new_item = result.scalar_one()
     # Agenda o matching em background (não bloqueia a API)
     background_tasks.add_task(
         run_item_matching_background, new_item.id, AsyncSessionLocal
@@ -148,8 +162,8 @@ async def create_found_item(
         title=item_in.title,
         description=item_in.description,
         secret_details=item_in.secret_details,
-        location_name=item_in.location_name,
-        latitude=item_in.latitude,
+        height_cm=item_in.height_cm,
+        width_cm=item_in.width_cm,
         longitude=item_in.longitude,
         event_date=item_in.event_date,
     )
@@ -157,7 +171,16 @@ async def create_found_item(
     db.add(new_item)
     await db.flush()  # Garante que o item tenha um ID
     await db.commit()
+    result = await db.execute(
+        select(Item)
+        .options(
+            selectinload(Item.category),
+            selectinload(Item.images),
+        )
+        .where(Item.id == new_item.id)
+    )
 
+    new_item = result.scalar_one()
     # Agenda o matching em background (não bloqueia a API)
     background_tasks.add_task(
         run_item_matching_background, new_item.id, AsyncSessionLocal
@@ -183,7 +206,14 @@ async def list_items(
     from sqlalchemy import func
     from app.models.enums import ItemType
 
-    query = select(Item).where(Item.user_id == current_user.id)
+    query = (
+    select(Item)
+    .options(
+        selectinload(Item.category),
+        selectinload(Item.images),
+    )
+    .where(Item.user_id == current_user.id)
+)
 
     if item_type:
         query = query.where(Item.type == getattr(ItemType, item_type))
@@ -233,7 +263,12 @@ async def get_item(
     O usuário só pode acessar seus próprios itens.
     """
     result = await db.execute(
-        select(Item).where(
+        select(Item)
+        .options(
+            selectinload(Item.category),
+            selectinload(Item.images),
+        )
+        .where(
             and_(Item.id == item_id, Item.user_id == current_user.id)
         )
     )
@@ -313,10 +348,10 @@ async def update_item(
         item.secret_details = item_in.secret_details
     if item_in.location_name is not None:
         item.location_name = item_in.location_name
-    if item_in.latitude is not None:
-        item.latitude = item_in.latitude
-    if item_in.longitude is not None:
-        item.longitude = item_in.longitude
+    if item_in.height_cm is not None:
+        item.height_cm = item_in.height_cm
+    if item_in.width_cm is not None:
+        item.width_cm = item_in.width_cm
     if item_in.event_date is not None:
         item.event_date = item_in.event_date
 
@@ -355,3 +390,144 @@ async def delete_item(
     await db.delete(item)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.post(
+    "/{item_id}/images",
+    response_model=list[ItemImageResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_item_images(
+    item_id: UUID,
+    files: list[UploadFile] = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+
+    if len(files) > 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="É permitido enviar no máximo 3 imagens.",
+        )
+
+    result = await db.execute(
+        select(Item).where(
+            and_(
+                Item.id == item_id,
+                Item.user_id == current_user.id,
+            )
+        )
+    )
+
+    item = result.scalar_one_or_none()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado ou acesso negado.",
+        )
+
+    existing_result = await db.execute(
+        select(ItemImage).where(
+            ItemImage.item_id == item_id
+        )
+    )
+
+    existing_images = existing_result.scalars().all()
+
+    if len(existing_images) + len(files) > 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O item pode possuir no máximo 3 imagens.",
+        )
+
+    allowed_types = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    }
+
+    upload_dir = (
+        Path(settings.UPLOAD_DIR)
+        / "items"
+        / str(item_id)
+    )
+
+    upload_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    saved_images = []
+
+    for file in files:
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Formato inválido. "
+                    "Envie JPG, PNG ou WEBP."
+                ),
+            )
+
+        extension = Path(
+            file.filename or ""
+        ).suffix.lower()
+
+        if extension not in {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp",
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Extensão de imagem inválida.",
+            )
+
+        filename = (
+            f"{uuid.uuid4()}{extension}"
+        )
+
+        file_path = upload_dir / filename
+
+        content = await file.read()
+
+        max_size = 5 * 1024 * 1024
+
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cada imagem pode ter no máximo 5 MB.",
+            )
+
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+
+        image_url = (
+            f"/uploads/items/"
+            f"{item_id}/"
+            f"{filename}"
+        )
+
+        item_image = ItemImage(
+            item_id=item_id,
+            image_url=image_url,
+        )
+
+        db.add(item_image)
+
+        saved_images.append(
+            item_image
+        )
+
+    await db.commit()
+
+    for image in saved_images:
+        await db.refresh(image)
+
+    return [
+        ItemImageResponse.model_validate(
+            image
+        )
+        for image in saved_images
+    ]

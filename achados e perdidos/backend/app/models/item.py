@@ -60,10 +60,8 @@ class Item(Base, TimestampMixin):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     secret_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     location_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    latitude: Mapped[Decimal | None] = mapped_column(
-        Numeric(9, 6), nullable=True)
-    longitude: Mapped[Decimal | None] = mapped_column(
-        Numeric(9, 6), nullable=True)
+    height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2),nullable=True,)
+    width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2),nullable=True,)
     event_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False)
     status: Mapped[ItemStatus] = mapped_column(

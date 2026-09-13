@@ -8,14 +8,14 @@ import LoginPage from "../pages/auth/LoginPage";
 import CadastroPage from "../pages/auth/CadastroPage";
 import RecuperarSenhaPage from "../pages/auth/RecuperarSenhaPage";
 import RedefinirSenhaPage from "../pages/auth/RedefinirSenhaPage";
+import NotificacoesPage from "../pages/Usuario/NotificacoesPage";
+import UsuarioHome from "../pages/Usuario/UsuarioHome";
 import MeusItensPage from "../pages/Usuario/MeusItensPage";
-import CorrespondenciasPage from "../pages/Usuario/CorrespondenciasPage";
+import ItemDetalhePage from "../pages/Usuario/ItemDetalhePage";
 import SolicitacoesPage from "../pages/Usuario/SolicitacoesPage";
+import ItemPerdidoPage from "../pages/Usuario/ItemPerdidoPage";
 
 import CategoriesPage from "../pages/funcionario/CategoriaPage/CategoriesPage";
-
-import UsuarioHome from "../pages/Usuario/UsuarioHome";
-
 
 function FuncionarioDashboard() {
   return (
@@ -29,11 +29,9 @@ function FuncionarioDashboard() {
   );
 }
 
-
 function AppRoutes() {
   return (
     <Routes>
-
       <Route
         path="/"
         element={
@@ -70,6 +68,26 @@ function AppRoutes() {
       />
 
       <Route
+        path="/usuario/meus-itens"
+        element={<MeusItensPage />}
+      />
+
+      <Route
+        path="/usuario/meus-itens/:id"
+        element={<ItemDetalhePage />}
+      />
+
+      <Route
+        path="/usuario/solicitacoes"
+        element={<SolicitacoesPage />}
+      />
+
+      <Route
+        path="/usuario/item-perdido"
+        element={<ItemPerdidoPage />}
+      />
+
+      <Route
         path="/funcionario/dashboard"
         element={<FuncionarioDashboard />}
       />
@@ -80,19 +98,9 @@ function AppRoutes() {
       />
 
       <Route
-      path="/usuario/meus-itens"
-      element={<MeusItensPage />}
-    />
-
-    <Route
-      path="/usuario/correspondencias"
-      element={<CorrespondenciasPage />}
-    />
-
-    <Route
-      path="/usuario/solicitacoes"
-      element={<SolicitacoesPage />}
-    />
+  path="/usuario/notificacoes"
+  element={<NotificacoesPage />}
+/>
 
       <Route
         path="*"
@@ -103,7 +111,6 @@ function AppRoutes() {
           />
         }
       />
-
     </Routes>
   );
 }

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { notificationService } from "../../services/notificationService";
 import { authService } from "../../services/authService";
+import { itemService } from "../../services/itemService";
 
 import "./UsuarioHome.css";
 
@@ -205,26 +206,234 @@ function UsuarioHome() {
 
   const [menuAberto, setMenuAberto] = useState(false);
 
-  const meusItens = [
-    {
-      id: 1,
-      categoria: "Acessórios",
-      titulo: "Mochila preta",
-      local: "Bloco A",
-      data: "27/08/2026",
-      status: "POSSÍVEL CORRESPONDÊNCIA",
-      statusClass: "match",
-    },
-    {
-      id: 2,
-      categoria: "Eletrônicos",
-      titulo: "Fone de ouvido Bluetooth",
-      local: "Biblioteca",
-      data: "25/08/2026",
-      status: "PROCURANDO",
-      statusClass: "searching",
-    },
-  ];
+
+  const [meusItens, setMeusItens] = useState([]);
+  const [carregandoItens, setCarregandoItens] = useState(true);
+  const [erroItens, setErroItens] = useState("");
+  const [itemCorrespondenciaSelecionado, setItemCorrespondenciaSelecionado] =
+  useState(null);
+  const [
+    notificacoesNaoLidas,
+    setNotificacoesNaoLidas,
+  ] = useState(0);
+  const [atividade, setAtividade] = useState({
+    itensCadastrados: 0,
+    possiveisCorrespondencias: 0,
+    emValidacao: 0,
+    recuperados: 0,
+  });
+
+  const [correspondenciasItemSelecionado, setCorrespondenciasItemSelecionado] =
+    useState([]);
+
+  const [carregandoCorrespondencias, setCarregandoCorrespondencias] =
+    useState(false);
+useEffect(() => {
+  carregarItens();
+  carregarQuantidadeNotificacoes();
+}, []);
+
+async function carregarItens() {
+  try {
+    setCarregandoItens(true);
+    setErroItens("");
+
+    const response =
+      await itemService.listarItensPerdidos();
+
+    const itensBackend =
+      response.items || [];
+
+    const emValidacao =
+      itensBackend.filter(
+        (item) =>
+          item.status === "EM_NEGOCIACAO"
+      ).length;
+
+    const recuperados =
+      itensBackend.filter(
+        (item) =>
+          item.status === "DEVOLVIDO"
+      ).length;
+
+    let totalCorrespondencias = 0;
+
+    const resultadosCorrespondencias =
+      await Promise.all(
+        itensBackend.map(async (item) => {
+          try {
+            const resultado =
+              await itemService.buscarCorrespondencias(
+                item.id
+              );
+
+            return resultado.items || [];
+          } catch (error) {
+            console.error(
+              `Erro ao buscar correspondências do item ${item.id}:`,
+              error
+            );
+
+            return [];
+          }
+        })
+      );
+
+    totalCorrespondencias =
+      resultadosCorrespondencias.reduce(
+        (total, lista) =>
+          total + lista.length,
+        0
+      );
+
+    setAtividade({
+      itensCadastrados:
+        itensBackend.length,
+
+      possiveisCorrespondencias:
+        totalCorrespondencias,
+
+      emValidacao,
+
+      recuperados,
+    });
+const itensFormatados =
+  itensBackend.map((item) => ({
+    id: item.id,
+
+    categoria:
+      item.category?.name ||
+      `Categoria ${item.category_id}`,
+
+    titulo: item.title,
+
+    local: item.location_name,
+
+    data: new Date(
+      item.event_date
+    ).toLocaleDateString(
+      "pt-BR"
+    ),
+
+    dataOriginal:
+      item.event_date,
+
+    status:
+      formatarStatus(
+        item.status
+      ),
+
+    statusClass:
+      definirStatusClass(
+        item.status
+      ),
+
+    original: item,
+  }));
+
+    setMeusItens(
+      itensFormatados
+    );
+    if (itensBackend.length > 0) {
+      const primeiroItem = itensBackend[0];
+
+      setItemCorrespondenciaSelecionado(primeiroItem);
+
+      await carregarCorrespondenciasDoItem(primeiroItem);
+    }
+
+
+  } catch (error) {
+    console.error(
+      "Erro ao carregar itens:",
+      error
+    );
+
+    setErroItens(
+      error.message ||
+        "Não foi possível carregar seus itens."
+    );
+  } finally {
+    setCarregandoItens(false);
+  }
+}
+
+async function carregarQuantidadeNotificacoes() {
+  try {
+    const response =
+      await notificationService.listar();
+
+    const itens =
+      response.items || [];
+
+    const quantidade =
+      itens.filter(
+        (notificacao) =>
+          !notificacao.is_read
+      ).length;
+
+    setNotificacoesNaoLidas(
+      quantidade
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao carregar notificações:",
+      error
+    );
+
+    setNotificacoesNaoLidas(0);
+  }
+}
+async function carregarCorrespondenciasDoItem(item) {
+  try {
+    setCarregandoCorrespondencias(true);
+
+    const response =
+      await itemService.buscarCorrespondencias(item.id);
+
+    const correspondencias =
+      response.items || [];
+
+    correspondencias.sort(
+      (a, b) =>
+        Number(b.similarity_score) -
+        Number(a.similarity_score)
+    );
+
+    setCorrespondenciasItemSelecionado(
+      correspondencias
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao carregar correspondências:",
+      error
+    );
+
+    setCorrespondenciasItemSelecionado([]);
+  } finally {
+    setCarregandoCorrespondencias(false);
+  }
+}
+
+  function formatarStatus(status) {
+    if (!status) return "";
+
+    return status
+      .replaceAll("_", " ")
+      .toUpperCase();
+  }
+
+  function definirStatusClass(status) {
+    if (status === "DEVOLVIDO") {
+      return "success";
+    }
+
+    if (status === "EM_NEGOCIACAO") {
+      return "match";
+    }
+
+    return "searching";
+  }
 
   function navegar(rota) {
     setMenuAberto(false);
@@ -315,9 +524,13 @@ function UsuarioHome() {
           >
             <Icon name="bell" />
 
-            <span className="notification-dot">
-              2
-            </span>
+            {notificacoesNaoLidas > 0 && (
+  <span className="notification-dot">
+    {notificacoesNaoLidas > 99
+      ? "99+"
+      : notificacoesNaoLidas}
+  </span>
+)}
           </button>
 
           <button
@@ -409,7 +622,7 @@ function UsuarioHome() {
               <button
                 className="hero-secondary-button"
                 onClick={() =>
-                  navegar("/usuario/meus-itens")
+                  irParaSecao("meus-itens")
                 }
               >
                 <Icon name="package" size={20} />
@@ -532,33 +745,6 @@ function UsuarioHome() {
             <button
               className="quick-action"
               onClick={() =>
-                navegar("/usuario/correspondencias")
-              }
-            >
-              <div className="quick-action-icon">
-                <Icon name="match" />
-              </div>
-
-              <div>
-                <strong>
-                  Correspondências
-                </strong>
-
-                <p>
-                  Veja possíveis combinações
-                  encontradas automaticamente pelo
-                  sistema.
-                </p>
-              </div>
-
-              <span className="quick-arrow">
-                <Icon name="arrow" size={20} />
-              </span>
-            </button>
-
-            <button
-              className="quick-action"
-              onClick={() =>
                 navegar("/usuario/solicitacoes")
               }
             >
@@ -583,111 +769,318 @@ function UsuarioHome() {
             </button>
           </div>
         </section>
-                <section
+             <section
   id="correspondencias"
   className="match-section"
 >
-          <div className="match-card">
-            <div className="match-card-content">
-              <span className="match-label">
-                NOVA CORRESPONDÊNCIA
-              </span>
 
-              <h2>
-                Podemos ter encontrado algo seu.
-              </h2>
+  {carregandoCorrespondencias ? (
+    <div className="match-card">
+      <div className="match-card-content">
+        <span className="match-label">
+          VERIFICANDO CORRESPONDÊNCIAS
+        </span>
 
-              <p>
-                Um objeto cadastrado pela equipe
-                possui características semelhantes
-                à mochila que você informou como
-                perdida.
-              </p>
+        <h2>
+          Procurando possíveis combinações...
+        </h2>
 
-              <div className="match-comparison">
-                <div className="match-lost-item">
-                  <div className="match-object-icon">
-                    <Icon name="package" size={25} />
-                  </div>
+        <p>
+          O OndeTá está verificando o objeto{" "}
+          <strong>
+            {itemCorrespondenciaSelecionado?.title ||
+              "selecionado"}
+          </strong>
+          .
+        </p>
+      </div>
 
-                  <div>
-                    <span>SEU ITEM PERDIDO</span>
+      <div className="match-score">
+        <div className="score-ring">
+          <strong>...</strong>
 
-                    <strong>Mochila preta</strong>
+          <span>
+            analisando
+          </span>
+        </div>
+      </div>
+    </div>
+  ) : correspondenciasItemSelecionado.length > 0 ? (
+    <div className="match-card">
+      <div className="match-card-content">
+        <div className="match-items-selector">
+  <span className="match-selector-label">
+    SEUS OBJETOS PERDIDOS
+  </span>
 
-                    <p>
-                      Registrada em 27/08/2026
-                    </p>
-                  </div>
-                </div>
+  <div className="match-items-tabs">
+    {meusItens.map((item) => (
+      <button
+        key={item.id}
+        type="button"
+        className={
+          itemCorrespondenciaSelecionado?.id === item.id
+            ? "match-item-tab active"
+            : "match-item-tab"
+        }
+        onClick={() => {
+          setItemCorrespondenciaSelecionado(
+            item.original
+          );
 
-                <div className="match-connector">
-                  <span />
-                  <div>
-                    <Icon name="match" size={20} />
-                  </div>
-                  <span />
-                </div>
+          carregarCorrespondenciasDoItem(
+            item.original
+          );
+        }}
+      >
+        {item.titulo}
+      </button>
+    ))}
+  </div>
+</div>
+        <span className="match-label">
+          {correspondenciasItemSelecionado.length === 1
+            ? "NOVA CORRESPONDÊNCIA"
+            : `${correspondenciasItemSelecionado.length} CORRESPONDÊNCIAS ENCONTRADAS`}
+        </span>
 
-                <div className="match-found-item">
-                  <div className="match-object-icon found">
-                    <Icon name="check" size={25} />
-                  </div>
+        <h2>
+          Podemos ter encontrado algo seu.
+        </h2>
 
-                  <div>
-                    <span>
-                      POSSÍVEL CORRESPONDÊNCIA
-                    </span>
+        <p>
+          O sistema encontrou um objeto com
+          características semelhantes ao seu registro de{" "}
+          <strong>
+            {itemCorrespondenciaSelecionado?.title}
+          </strong>
+          .
+        </p>
 
-                    <strong>
-                      Objeto compatível
-                    </strong>
-
-                    <p>
-                      Detalhes protegidos até a
-                      validação
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="match-actions">
-                <button
-                  onClick={() =>
-                    navegar(
-                      "/usuario/correspondencias"
-                    )
-                  }
-                >
-                  Ver correspondência
-
-                  <Icon name="arrow" size={18} />
-                </button>
-
-                <div className="protected-info">
-                  <Icon name="shield" size={16} />
-
-                  Informações protegidas
-                </div>
-              </div>
+        <div className="match-comparison">
+          <div className="match-lost-item">
+            <div className="match-object-icon">
+              <Icon
+                name="package"
+                size={25}
+              />
             </div>
 
-            <div className="match-score">
-              <div className="score-ring">
-                <strong>
-                  87<small>%</small>
-                </strong>
+            <div>
+              <span>
+                SEU ITEM PERDIDO
+              </span>
 
-                <span>compatível</span>
-              </div>
+              <strong>
+                {itemCorrespondenciaSelecionado?.title}
+              </strong>
 
               <p>
-                Compatibilidade calculada com base
-                nos dados dos dois registros.
+                Registrado em{" "}
+                {itemCorrespondenciaSelecionado?.event_date
+                  ? new Date(
+                      itemCorrespondenciaSelecionado.event_date
+                    ).toLocaleDateString("pt-BR")
+                  : "-"}
               </p>
             </div>
           </div>
-        </section>
+
+          <div className="match-connector">
+            <span />
+
+            <div>
+              <Icon
+                name="match"
+                size={20}
+              />
+            </div>
+
+            <span />
+          </div>
+
+          <div className="match-found-item">
+            <div className="match-object-icon found">
+              <Icon
+                name="check"
+                size={25}
+              />
+            </div>
+
+            <div>
+              <span>
+                POSSÍVEL CORRESPONDÊNCIA
+              </span>
+
+              <strong>
+                Objeto compatível
+              </strong>
+
+              <p>
+                Detalhes protegidos até a validação
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="match-actions">
+          <button
+            onClick={() =>
+              navigate(
+                "/usuario/correspondencias",
+                {
+                  state: {
+                    itemId:
+                      itemCorrespondenciaSelecionado.id,
+
+                    itemTitle:
+                      itemCorrespondenciaSelecionado.title,
+                  },
+                }
+              )
+            }
+          >
+            {correspondenciasItemSelecionado.length === 1
+              ? "Ver correspondência"
+              : `Ver ${correspondenciasItemSelecionado.length} correspondências`}
+
+            <Icon
+              name="arrow"
+              size={18}
+            />
+          </button>
+
+          <div className="protected-info">
+            <Icon
+              name="shield"
+              size={16}
+            />
+
+            Informações protegidas
+          </div>
+        </div>
+      </div>
+
+      <div className="match-score">
+        <div className="score-ring">
+          <strong>
+            {Math.round(
+              Number(
+                correspondenciasItemSelecionado[0]
+                  .similarity_score
+              )
+            )}
+
+            <small>%</small>
+          </strong>
+
+          <span>
+            melhor resultado
+          </span>
+        </div>
+
+        <p>
+          Maior compatibilidade encontrada para este objeto.
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div className="match-card">
+  <div className="match-card-content">
+
+    <div className="match-items-selector">
+      <span className="match-selector-label">
+        SEUS OBJETOS PERDIDOS
+      </span>
+
+      <div className="match-items-tabs">
+        {meusItens.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={
+              itemCorrespondenciaSelecionado?.id === item.id
+                ? "match-item-tab active"
+                : "match-item-tab"
+            }
+            onClick={() => {
+              setItemCorrespondenciaSelecionado(
+                item.original
+              );
+
+              carregarCorrespondenciasDoItem(
+                item.original
+              );
+            }}
+          >
+            {item.titulo}
+          </button>
+        ))}
+      </div>
+    </div>
+        <span className="match-label">
+          CORRESPONDÊNCIAS
+        </span>
+
+        <h2>
+          Nenhuma correspondência encontrada para este objeto.
+        </h2>
+
+        <p>
+          O objeto{" "}
+          <strong>
+            {itemCorrespondenciaSelecionado?.title ||
+              "selecionado"}
+          </strong>{" "}
+          continua registrado. O sistema continuará comparando
+          seus dados com objetos encontrados cadastrados pela
+          equipe.
+        </p>
+
+        <div className="match-actions">
+          <button
+            onClick={() =>
+              irParaSecao("meus-itens")
+            }
+          >
+            Ver meus objetos
+
+            <Icon
+              name="arrow"
+              size={18}
+            />
+          </button>
+
+          <div className="protected-info">
+            <Icon
+              name="shield"
+              size={16}
+            />
+
+            Monitoramento ativo
+          </div>
+        </div>
+      </div>
+
+      <div className="match-score">
+        <div className="score-ring">
+          <strong>
+            0
+            <small>%</small>
+          </strong>
+
+          <span>
+            no momento
+          </span>
+        </div>
+
+        <p>
+          Ainda não existe registro compatível com este objeto.
+        </p>
+      </div>
+    </div>
+  )}
+</section>
 
         <section
           id="meus-itens"
@@ -718,7 +1111,25 @@ function UsuarioHome() {
             </div>
 
             <div className="items-list">
-              {meusItens.map((item) => (
+              {carregandoItens && (
+                <p>Carregando seus itens...</p>
+              )}
+
+              {!carregandoItens && erroItens && (
+                <p>{erroItens}</p>
+              )}
+
+              {!carregandoItens &&
+                !erroItens &&
+                meusItens.length === 0 && (
+                  <p>
+                    Você ainda não cadastrou nenhum objeto perdido.
+                  </p>
+                )}
+
+              {!carregandoItens &&
+                !erroItens &&
+                meusItens.map((item) => (
                 <button
                   className="lost-item-card"
                   key={item.id}
@@ -793,7 +1204,9 @@ function UsuarioHome() {
 
               <div className="summary-stat">
                 <div>
-                  <strong>2</strong>
+                  <strong>
+                  {atividade.itensCadastrados}
+                  </strong>
                   <span>Itens cadastrados</span>
                 </div>
 
@@ -802,9 +1215,14 @@ function UsuarioHome() {
 
               <div className="summary-stat">
                 <div>
-                  <strong>1</strong>
+                  <strong>
+                    {atividade.possiveisCorrespondencias}
+                  </strong>
+
                   <span>
-                    Possível correspondência
+                    {atividade.possiveisCorrespondencias === 1
+                      ? "Possível correspondência"
+                      : "Possíveis correspondências"}
                   </span>
                 </div>
 
@@ -813,8 +1231,13 @@ function UsuarioHome() {
 
               <div className="summary-stat">
                 <div>
-                  <strong>1</strong>
-                  <span>Em validação</span>
+                  <strong>
+                    {atividade.emValidacao}
+                  </strong>
+
+                  <span>
+                    Em validação
+                  </span>
                 </div>
 
                 <div className="summary-dot validating" />
@@ -822,8 +1245,15 @@ function UsuarioHome() {
 
               <div className="summary-stat">
                 <div>
-                  <strong>3</strong>
-                  <span>Objetos recuperados</span>
+                  <strong>
+                    {atividade.recuperados}
+                  </strong>
+
+                  <span>
+                    {atividade.recuperados === 1
+                      ? "Objeto recuperado"
+                      : "Objetos recuperados"}
+                  </span>
                 </div>
 
                 <div className="summary-dot success" />

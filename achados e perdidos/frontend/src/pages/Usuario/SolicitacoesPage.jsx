@@ -4,15 +4,6 @@ import "./UsuarioPages.css";
 function SolicitacoesPage() {
   const navigate = useNavigate();
 
-  const solicitacoes = [
-    {
-      id: 1,
-      item: "Mochila preta",
-      data: "29/08/2026",
-      status: "Em validação",
-    },
-  ];
-
   return (
     <div className="usuario-page">
       <header className="usuario-page-header">
@@ -24,44 +15,46 @@ function SolicitacoesPage() {
           <h1>Minhas solicitações</h1>
 
           <p>
-            Acompanhe o andamento das solicitações de devolução.
+            Acompanhe o andamento das suas solicitações de devolução.
           </p>
         </div>
 
         <button
           className="back-button"
-          onClick={() => navigate("/usuario/home")}
+          onClick={() =>
+            navigate("/usuario/home")
+          }
         >
           Voltar ao início
         </button>
       </header>
 
       <main className="usuario-page-content">
-        <h2>Solicitações recentes</h2>
+        <h2>Solicitações</h2>
 
-        <div className="simple-list">
-          {solicitacoes.map((solicitacao) => (
-            <div
-              className="simple-card"
-              key={solicitacao.id}
-            >
-              <div>
-                <span className="card-category">
-                  SOLICITAÇÃO #{solicitacao.id}
-                </span>
+        <div className="solicitacoes-empty">
+          <div className="solicitacoes-empty-icon">
+            OT
+          </div>
 
-                <h3>{solicitacao.item}</h3>
+          <h3>
+            Nenhuma solicitação realizada
+          </h3>
 
-                <p>
-                  Solicitação realizada em {solicitacao.data}
-                </p>
-              </div>
+          <p>
+            Você ainda não possui nenhuma solicitação de devolução em andamento.
+            Quando uma correspondência for encontrada e você solicitar a
+            devolução do objeto, ela aparecerá aqui.
+          </p>
 
-              <span className="status-badge">
-                {solicitacao.status}
-              </span>
-            </div>
-          ))}
+          <button
+            className="primary-button"
+            onClick={() =>
+              navigate("/usuario/home")
+            }
+          >
+            Voltar ao início
+          </button>
         </div>
       </main>
     </div>

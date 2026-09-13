@@ -1,10 +1,9 @@
 import { apiRequest } from "./api";
-
-const LOGIN_ENDPOINT = "/api/v1/auth/login";
-const ME_ENDPOINT = "/api/v1/auth/me";
-const REGISTER_ENDPOINT = "/api/v1/auth/register";
-const FORGOT_PASSWORD_ENDPOINT = "/api/v1/auth/forgot-password";
-const RESET_PASSWORD_ENDPOINT = "/api/v1/auth/reset-password";
+const LOGIN_ENDPOINT = "/auth/login";
+const ME_ENDPOINT = "/auth/me";
+const REGISTER_ENDPOINT = "/auth/register";
+const FORGOT_PASSWORD_ENDPOINT = "/auth/forgot-password";
+const RESET_PASSWORD_ENDPOINT = "/auth/reset-password";
 
 export const authService = {
   async login(email, senha) {

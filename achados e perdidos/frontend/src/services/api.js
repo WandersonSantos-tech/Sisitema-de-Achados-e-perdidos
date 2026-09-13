@@ -1,13 +1,17 @@
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem("access_token");
+const isFormData = options.body instanceof FormData;
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
+const headers = {
+  ...options.headers,
+};
+
+if (!isFormData) {
+  headers["Content-Type"] = "application/json";
+}
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;

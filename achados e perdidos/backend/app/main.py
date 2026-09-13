@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.items import router as items_router
 from app.api.v1.endpoints.notifications import router as notifications_router
+from app.api.v1.endpoints.categories import router as categories_router
 
 UPLOAD_PATH = Path(settings.UPLOAD_DIR).expanduser().resolve()
 UPLOAD_PATH.mkdir(parents=True, exist_ok=True)
@@ -33,6 +34,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(items_router, prefix=settings.API_V1_STR)
 app.include_router(notifications_router, prefix=settings.API_V1_STR)
+app.include_router(categories_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health")

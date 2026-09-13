@@ -20,10 +20,9 @@ class ItemImageResponse(BaseModel):
     """DTO para resposta de imagem de item"""
     id: uuid.UUID
     item_id: uuid.UUID
-    url: str
+    image_url: str
 
     model_config = {"from_attributes": True}
-
 
 class ItemCreate(BaseModel):
     """DTO para criação de item"""
@@ -33,8 +32,8 @@ class ItemCreate(BaseModel):
     description: str = Field(..., min_length=10)
     secret_details: Optional[str] = None
     location_name: str = Field(..., max_length=255)
-    latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
-    longitude: Optional[Decimal] = Field(None, ge=-180, le=180)
+    height_cm: Optional[Decimal] = Field(None,gt=0,description="Altura aproximada do objeto em centímetros",)
+    width_cm: Optional[Decimal] = Field(None,gt=0,description="Largura aproximada do objeto em centímetros",)
     event_date: datetime.datetime
 
 
@@ -45,8 +44,8 @@ class ItemUpdate(BaseModel):
     description: Optional[str] = Field(None, min_length=10)
     secret_details: Optional[str] = None
     location_name: Optional[str] = Field(None, max_length=255)
-    latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
-    longitude: Optional[Decimal] = Field(None, ge=-180, le=180)
+    height_cm: Optional[Decimal] = Field(None, gt=0)
+    width_cm: Optional[Decimal] = Field(None, gt=0)
     event_date: Optional[datetime.datetime] = None
 
 
@@ -60,8 +59,8 @@ class ItemResponse(BaseModel):
     description: str
     secret_details: Optional[str] = None
     location_name: str
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    height_cm: Optional[Decimal] = None
+    width_cm: Optional[Decimal] = None
     event_date: datetime.datetime
     status: str
     created_at: datetime.datetime
