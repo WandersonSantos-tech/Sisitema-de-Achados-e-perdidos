@@ -13,7 +13,8 @@ import {
   View,
 } from "react-native";
 
-import { authService } from "../../services/authService";
+// Importação padrão (sem chaves):
+import authService from "../../services/authService";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");

@@ -1,14 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.24.4:8000/api/v1";
-export async function apiRequest(
-  endpoint,
-  options = {}
-) {
-  const token =
-    await AsyncStorage.getItem(
-      "access_token"
-    );
+const API_URL = "http://192.168.24.5:8000/api/v1";
+
+export async function apiRequest(endpoint, options = {}) {
+  const token = await AsyncStorage.getItem("access_token");
 
   const headers = {
     "Content-Type": "application/json",
@@ -16,24 +11,18 @@ export async function apiRequest(
   };
 
   if (token) {
-    headers.Authorization =
-      `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   let response;
 
   try {
-    response = await fetch(
-      `${API_URL}${endpoint}`,
-      {
-        ...options,
-        headers,
-      }
-    );
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
   } catch {
-    throw new Error(
-      "Não foi possível conectar ao servidor."
-    );
+    throw new Error("Não foi possível conectar ao servidor.");
   }
 
   let data = null;
@@ -51,9 +40,7 @@ export async function apiRequest(
       "Erro na requisição.";
 
     if (Array.isArray(message)) {
-      message = message
-        .map((item) => item.msg)
-        .join("\n");
+      message = message.map((item) => item.msg).join("\n");
     }
 
     throw new Error(message);
