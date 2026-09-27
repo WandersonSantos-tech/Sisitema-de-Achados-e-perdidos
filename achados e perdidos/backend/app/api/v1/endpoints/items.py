@@ -2,19 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.api.deps import get_current_user, get_db
-from app.core.database import AsyncSessionLocal
-from app.models.enums import NotificationType
+from app.api.deps import get_current_admin, get_current_user, get_db
 from app.models.item import Item
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
 from app.schemas.match import MatchListResponse, MatchResultResponse
 from app.services.matching_service import matching_service
-from app.services.notification_service import notification_service
 from pathlib import Path
 import uuid
 from fastapi import UploadFile, File
@@ -25,72 +22,15 @@ from app.core.config import settings
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-async def run_item_matching_background(
-    item_id: UUID,
-    db_session_factory=AsyncSessionLocal,
-) -> None:
-    """
-    Task executada em background para encontrar correspondências de um item.
-    Garante que cada correspondência gera apenas uma notificação.
-    """
-    async with db_session_factory() as session:
-        try:
-            # Recupera o item
-            result = await session.execute(select(Item).where(Item.id == item_id))
-            item = result.scalar_one_or_none()
-
-            if not item:
-                return
-
-            # Executa o matching
-            matches = await matching_service.find_matches_for_item(session, item_id)
-
-            # Cria notificações para cada correspondência encontrada
-            for match in matches:
-                # Verifica se já existe notificação (idempotência)
-                existing = await notification_service.check_existing_match_notification(
-                    session,
-                    item.user_id,
-                    item_id,
-                    match["matched_item_id"],
-                )
-
-                if not existing:
-                    # Cria mensagem descritiva
-                    message = (
-                        f"Encontramos um possível objeto correspondente ao seu item: "
-                        f"{match['matched_item_title']} com {match['similarity_score']:.1f}% "
-                        f"de similaridade."
-                    )
-
-                    await notification_service.create_notification(
-                        session,
-                        user_id=item.user_id,
-                        item_id=item_id,
-                        title="Correspondência Encontrada!",
-                        message=message,
-                        notification_type=NotificationType.MATCH_FOUND,
-                    )
-
-            # Commit de todas as notificações
-            await session.commit()
-
-        except Exception as e:
-            # Log do erro (pode ser integrado com um sistema de logging)
-            print(f"Erro ao executar matching para item {item_id}: {str(e)}")
-            await session.rollback()
-
-
 @router.post("/lost", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_lost_item(
     item_in: ItemCreate,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Cria um novo item perdido.
-    Agenda automaticamente a busca de correspondências em background.
+    As sugestões ficam disponíveis para análise manual pelo funcionário.
     """
     from app.models.enums import ItemType
 
@@ -127,10 +67,6 @@ async def create_lost_item(
     )
 
     new_item = result.scalar_one()
-    # Agenda o matching em background (não bloqueia a API)
-    background_tasks.add_task(
-        run_item_matching_background, new_item.id, AsyncSessionLocal
-    )
 
     return ItemResponse.model_validate(new_item)
 
@@ -138,15 +74,14 @@ async def create_lost_item(
 @router.post("/found", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_found_item(
     item_in: ItemCreate,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin),
 ) -> Any:
     """
     Cria um novo item encontrado.
-    Agenda automaticamente a busca de correspondências em background.
+    As sugestões ficam disponíveis para análise manual pelo funcionário.
     """
-    from app.models.enums import ItemType
+    from app.models.enums import ItemType, ItemStatus
 
     if item_in.type != ItemType.ENCONTRADO.value:
         raise HTTPException(
@@ -162,9 +97,10 @@ async def create_found_item(
         title=item_in.title,
         description=item_in.description,
         secret_details=item_in.secret_details,
+        location_name=item_in.location_name,
         height_cm=item_in.height_cm,
         width_cm=item_in.width_cm,
-        longitude=item_in.longitude,
+        status=ItemStatus.ENCONTRADO,
         event_date=item_in.event_date,
     )
 
@@ -181,10 +117,6 @@ async def create_found_item(
     )
 
     new_item = result.scalar_one()
-    # Agenda o matching em background (não bloqueia a API)
-    background_tasks.add_task(
-        run_item_matching_background, new_item.id, AsyncSessionLocal
-    )
 
     return ItemResponse.model_validate(new_item)
 
