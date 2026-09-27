@@ -9,6 +9,9 @@ from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.items import router as items_router
 from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.categories import router as categories_router
+from app.api.v1.endpoints.claims import router as claims_router
+from app.api.v1.endpoints.messages import router as messages_router
+from app.api.v1.endpoints.admin import router as admin_router
 
 UPLOAD_PATH = Path(settings.UPLOAD_DIR).expanduser().resolve()
 UPLOAD_PATH.mkdir(parents=True, exist_ok=True)
@@ -35,6 +38,9 @@ app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(items_router, prefix=settings.API_V1_STR)
 app.include_router(notifications_router, prefix=settings.API_V1_STR)
 app.include_router(categories_router, prefix=settings.API_V1_STR)
+app.include_router(claims_router, prefix=settings.API_V1_STR)
+app.include_router(messages_router, prefix=settings.API_V1_STR)
+app.include_router(admin_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health")

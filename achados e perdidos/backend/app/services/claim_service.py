@@ -146,10 +146,10 @@ class ClaimService:
             # Registrar histórico de mudança
             history_entry = StatusHistory(
                 item_id=claim.item.id,
-                old_status=old_status,
+                previous_status=old_status,
                 new_status=ItemStatus.EM_NEGOCIACAO,
                 changed_by=current_user.id,
-                reason=f"Reivindicação #{claim_id} aprovada",
+                note=f"Reivindicação #{claim_id} aprovada",
             )
             db.add(history_entry)
 

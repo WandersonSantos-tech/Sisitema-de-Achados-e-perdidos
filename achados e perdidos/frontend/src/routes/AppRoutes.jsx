@@ -15,18 +15,20 @@ import ItemDetalhePage from "../pages/Usuario/ItemDetalhePage";
 import SolicitacoesPage from "../pages/Usuario/SolicitacoesPage";
 import ItemPerdidoPage from "../pages/Usuario/ItemPerdidoPage";
 
-import CategoriesPage from "../pages/funcionario/CategoriaPage/CategoriesPage";
+import { useEffect, useState } from "react";
+import { authService } from "../services/authService";
+import AdminPage from "../pages/funcionario/AdminPage/AdminPage";
 
-function FuncionarioDashboard() {
-  return (
-    <div style={{ padding: "40px" }}>
-      <h1>Dashboard do Funcionário</h1>
-
-      <p>
-        Login realizado com sucesso.
-      </p>
-    </div>
-  );
+function AdminGuard() {
+  const [allowed, setAllowed] = useState(null);
+  useEffect(() => {
+    let mounted = true;
+    authService.getCurrentUser().then(user => { if (mounted) setAllowed(user.role === "ADMIN"); })
+      .catch(() => { if (mounted) setAllowed(false); });
+    return () => { mounted = false; };
+  }, []);
+  if (allowed === null) return <p style={{ padding: 40 }}>Verificando acesso...</p>;
+  return allowed ? <AdminPage /> : <Navigate to="/login" replace />;
 }
 
 function AppRoutes() {
@@ -87,15 +89,8 @@ function AppRoutes() {
         element={<ItemPerdidoPage />}
       />
 
-      <Route
-        path="/funcionario/dashboard"
-        element={<FuncionarioDashboard />}
-      />
-
-      <Route
-        path="/funcionario/categorias"
-        element={<CategoriesPage />}
-      />
+      <Route path="/funcionario" element={<Navigate to="/funcionario/dashboard" replace />} />
+      <Route path="/funcionario/:secao" element={<AdminGuard />} />
 
       <Route
   path="/usuario/notificacoes"

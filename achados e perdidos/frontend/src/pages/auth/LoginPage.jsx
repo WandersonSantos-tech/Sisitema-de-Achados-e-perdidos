@@ -34,7 +34,6 @@ async function handleSubmit(event) {
 
     console.log("LOGIN REALIZADO COM SUCESSO");
     console.log("Usuário:", usuario);
-    console.log("Token:", authService.getToken());
     console.log("Role:", usuario.role);
 
     // Login pela área de funcionário
@@ -49,7 +48,7 @@ async function handleSubmit(event) {
         return;
       }
 
-      navigate("/funcionario/categorias");
+      navigate("/funcionario/dashboard");
       return;
     }
 
@@ -61,7 +60,7 @@ async function handleSubmit(event) {
 
     // Caso um ADMIN faça login pela tela normal
     if (usuario.role === "ADMIN") {
-      navigate("/funcionario/categorias");
+      navigate("/funcionario/dashboard");
       return;
     }
 
