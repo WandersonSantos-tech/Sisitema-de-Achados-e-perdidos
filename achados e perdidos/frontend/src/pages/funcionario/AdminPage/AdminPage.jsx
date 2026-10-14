@@ -1,61 +1,98 @@
-import { useCallback, useEffect, useState } from 'react';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from "react";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 
-import { authService } from '../../../services/authService';
-import { itemService } from '../../../services/itemService';
-import { adminService } from '../../../services/adminService';
+import { authService } from "../../../services/authService";
+import { itemService } from "../../../services/itemService";
+import { adminService } from "../../../services/adminService";
 
-import './AdminPage.css';
+import "./AdminPage.css";
+import AdminManagement from "../AdminManagement/AdminManagement";
+import ClaimChat from "../../../components/ClaimChat";
+
+const imageUrl = (path) => {
+  if (!path) return "";
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const base = (
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:8000/api/v1"
+  )
+    .replace(/\/api\/v1\/?$/, "")
+    .replace(/\/$/, "");
+
+  return `${base}/${String(path).replace(/^\/+/, "")}`;
+};
+
 
 const sections = [
-  ['dashboard', 'Visão geral'],
-  ['objetos', 'Objetos'],
-  ['correspondencias', 'Correspondências'],
-  ['solicitacoes', 'Solicitações'],
-  ['usuarios', 'Usuários'],
-  ['categorias', 'Categorias'],
-  ['denuncias', 'Denúncias'],
+  ["dashboard", "Visão geral"],
+  ["objetos", "Objetos"],
+  ["publicacoes", "Publicações"],
+  ["correspondencias", "Correspondências"],
+  ["solicitacoes", "Solicitações"],
+  ["usuarios", "Usuários"],
+  ["categorias", "Categorias"],
+  ["denuncias", "Denúncias"],
 ];
 
 const date = (value) =>
-  value ? new Date(value).toLocaleDateString('pt-BR') : '—';
+  value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 
-const statusLabel = (value) => (value || '').replaceAll('_', ' ');
+const statusLabel = (value) => (value || "").replaceAll("_", " ");
 
 export default function AdminPage() {
-  const { secao = 'dashboard' } = useParams();
+  const { secao = "dashboard" } = useParams();
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState(null);
   const [matches, setMatches] = useState(null);
+  const [matchesError, setMatchesError] = useState("");
+  const [manualFoundId, setManualFoundId] = useState("");
+  const [manualLostId, setManualLostId] = useState("");
+  const [manualItems, setManualItems] = useState([]);
+  const [manualVisible, setManualVisible] = useState(false);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualLostItems, setManualLostItems] = useState([]);
+  const [manualSearch, setManualSearch] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
   const [categories, setCategories] = useState([]);
 
   const [form, setForm] = useState({
-    category_id: '',
-    title: '',
-    description: '',
-    location_name: '',
-    event_date: '',
-    secret_details: '',
-  });
-
-  const [categoryForm, setCategoryForm] = useState({
-    id: null,
-    name: '',
-    description: '',
+    category_id: "",
+    title: "",
+    description: "",
+    location_name: "",
+    event_date: "",
+    secret_details: "",
   });
 
   const [busy, setBusy] = useState(false);
+  const [chatClaimId, setChatClaimId] = useState(null);
 
   const load = useCallback(async () => {
+    if (
+      [
+        "usuarios",
+        "publicacoes",
+        "denuncias",
+        "categorias",
+        "dashboard",
+      ].includes(secao)
+    ) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setError('');
+    setError("");
     setData(null);
 
     try {
@@ -71,7 +108,7 @@ export default function AdminPage() {
 
         correspondencias: () =>
           adminService.items({
-            item_type: 'ENCONTRADO',
+            item_type: "ENCONTRADO",
             page_size: 100,
           }),
 
@@ -89,7 +126,7 @@ export default function AdminPage() {
 
       setData(await (loaders[secao] || loaders.dashboard)());
 
-      if (secao === 'objetos' || secao === 'categorias') {
+      if (secao === "objetos" || secao === "categorias") {
         setCategories(await adminService.categories());
       }
     } catch (e) {
@@ -103,13 +140,64 @@ export default function AdminPage() {
     load();
     setSelected(null);
     setMatches(null);
-    setMessage('');
+    setMatchesError("");
+    setMessage("");
   }, [load]);
+async function loadManualLostItems() {
+  setManualOpen(true);
+  setManualLoading(true);
+  setMatchesError("");
 
+  try {
+    const result = await adminService.items({
+      item_type: "PERDIDO",
+      page_size: 100,
+    });
+
+    setManualLostItems(
+      (result.items || []).filter(
+        (item) =>
+          item.type === "PERDIDO" &&
+          item.status === "PERDIDO"
+      )
+    );
+  } catch (e) {
+    setMatchesError(e.message);
+  } finally {
+    setManualLoading(false);
+  }
+}
+async function openManualMatch() {
+  setManualVisible(true);
+  setManualLoading(true);
+  setError("");
+
+  try {
+    const [found, lost] = await Promise.all([
+      adminService.items({
+        item_type: "ENCONTRADO",
+        page_size: 100,
+      }),
+      adminService.items({
+        item_type: "PERDIDO",
+        page_size: 100,
+      }),
+    ]);
+
+    setManualItems([
+      ...(found.items || []),
+      ...(lost.items || []),
+    ]);
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    setManualLoading(false);
+  }
+}
   async function action(fn, success) {
     setBusy(true);
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
 
     try {
       await fn();
@@ -124,11 +212,10 @@ export default function AdminPage() {
 
   function logout() {
     authService.logout();
-    navigate('/login');
+    navigate("/login");
   }
 
-  const title =
-    sections.find(([key]) => key === secao)?.[1] || 'Visão geral';
+  const title = sections.find(([key]) => key === secao)?.[1] || "Visão geral";
 
   return (
     <div className="admin-app">
@@ -148,7 +235,7 @@ export default function AdminPage() {
               key={key}
               to={`/funcionario/${key}`}
               className={({ isActive }) =>
-                isActive ? 'admin-link active' : 'admin-link'
+                isActive ? "admin-link active" : "admin-link"
               }
             >
               {label}
@@ -164,19 +251,15 @@ export default function AdminPage() {
       <main className="admin-main">
         <header className="admin-header">
           <div>
-            <span className="admin-eyebrow">
-              PAINEL DO FUNCIONÁRIO
-            </span>
+            <span className="admin-eyebrow">PAINEL DO FUNCIONÁRIO</span>
 
             <h1>{title}</h1>
 
-            <p>
-              Gerencie objetos e solicitações do OndeTá.
-            </p>
+            <p>Gerencie objetos e solicitações do OndeTá.</p>
           </div>
 
           <div className="admin-user">
-            {authService.getUsuario()?.name || 'Funcionário'}
+            {authService.getUsuario()?.name || "Funcionário"}
           </div>
         </header>
 
@@ -192,68 +275,19 @@ export default function AdminPage() {
           </div>
         )}
 
-        {loading ? (
-          <p className="admin-empty">
-            Carregando informações...
-          </p>
+        {[
+          "usuarios",
+          "publicacoes",
+          "denuncias",
+          "categorias",
+          "dashboard",
+        ].includes(secao) ? (
+          <AdminManagement key={secao} section={secao} />
+        ) : loading ? (
+          <p className="admin-empty">Carregando informações...</p>
         ) : (
           <>
-            {secao === 'dashboard' && data && (
-              <>
-                <div className="admin-metrics">
-                  {[
-                    ['Usuários', data.total_users],
-                    ['Itens ativos', data.total_active_items],
-                    ['Itens devolvidos', data.total_returned_items],
-                    [
-                      'Taxa de devolução',
-                      `${data.return_success_rate}%`,
-                    ],
-                    ['Denúncias pendentes', data.pending_reports],
-                  ].map(([label, value]) => (
-                    <div
-                      className="admin-card metric"
-                      key={label}
-                    >
-                      <span>{label}</span>
-                      <strong>{value}</strong>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="admin-columns">
-                  <section className="admin-card">
-                    <h2>Categorias mais comuns</h2>
-
-                    {data.top_categories.length ? (
-                      data.top_categories.map((x) => (
-                        <p key={x.category_name}>
-                          {x.category_name} <b>{x.count}</b>
-                        </p>
-                      ))
-                    ) : (
-                      <p>Sem registros.</p>
-                    )}
-                  </section>
-
-                  <section className="admin-card">
-                    <h2>Locais com mais ocorrências</h2>
-
-                    {data.top_locations.length ? (
-                      data.top_locations.map((x) => (
-                        <p key={x.location_name}>
-                          {x.location_name} <b>{x.count}</b>
-                        </p>
-                      ))
-                    ) : (
-                      <p>Sem registros.</p>
-                    )}
-                  </section>
-                </div>
-              </>
-            )}
-
-            {secao === 'objetos' && (
+            {secao === "objetos" && (
               <>
                 <section className="admin-card">
                   <h2>Cadastrar objeto encontrado</h2>
@@ -268,19 +302,15 @@ export default function AdminPage() {
                           itemService.criarItemEncontrado({
                             ...form,
                             category_id: Number(form.category_id),
-                            event_date: new Date(
-                              form.event_date
-                            ).toISOString(),
-                            secret_details:
-                              form.secret_details || null,
+                            event_date: new Date(form.event_date).toISOString(),
+                            secret_details: form.secret_details || null,
                           }),
-                        'Objeto encontrado cadastrado.'
+                        "Objeto encontrado cadastrado.",
                       );
                     }}
                   >
                     <label>
                       Categoria
-
                       <select
                         required
                         value={form.category_id}
@@ -291,15 +321,10 @@ export default function AdminPage() {
                           })
                         }
                       >
-                        <option value="">
-                          Selecione
-                        </option>
+                        <option value="">Selecione</option>
 
                         {categories.map((c) => (
-                          <option
-                            key={c.id}
-                            value={c.id}
-                          >
+                          <option key={c.id} value={c.id}>
                             {c.name}
                           </option>
                         ))}
@@ -308,7 +333,6 @@ export default function AdminPage() {
 
                     <label>
                       Nome do objeto
-
                       <input
                         required
                         minLength={3}
@@ -325,7 +349,6 @@ export default function AdminPage() {
 
                     <label>
                       Local onde foi encontrado
-
                       <input
                         required
                         value={form.location_name}
@@ -340,7 +363,6 @@ export default function AdminPage() {
 
                     <label>
                       Data e hora
-
                       <input
                         required
                         type="datetime-local"
@@ -356,7 +378,6 @@ export default function AdminPage() {
 
                     <label className="wide">
                       Descrição
-
                       <textarea
                         required
                         minLength={10}
@@ -372,7 +393,6 @@ export default function AdminPage() {
 
                     <label className="wide">
                       Detalhes reservados (não exibir publicamente)
-
                       <textarea
                         value={form.secret_details}
                         onChange={(e) =>
@@ -384,9 +404,7 @@ export default function AdminPage() {
                       />
                     </label>
 
-                    <button disabled={busy}>
-                      Cadastrar objeto
-                    </button>
+                    <button disabled={busy}>Cadastrar objeto</button>
                   </form>
                 </section>
 
@@ -394,38 +412,126 @@ export default function AdminPage() {
                   <input
                     placeholder="Buscar por nome ou local"
                     value={search}
-                    onChange={(e) =>
-                      setSearch(e.target.value)
-                    }
+                    onChange={(e) => setSearch(e.target.value)}
                   />
 
                   <select
                     value={filter}
-                    onChange={(e) =>
-                      setFilter(e.target.value)
-                    }
+                    onChange={(e) => setFilter(e.target.value)}
                   >
-                    <option value="">
-                      Todos os tipos
-                    </option>
+                    <option value="">Todos os tipos</option>
 
-                    <option value="PERDIDO">
-                      Perdidos
-                    </option>
+                    <option value="PERDIDO">Perdidos</option>
 
-                    <option value="ENCONTRADO">
-                      Encontrados
-                    </option>
+                    <option value="ENCONTRADO">Encontrados</option>
                   </select>
                 </div>
+
+
+                
+                <section className="admin-card">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (manualVisible) {
+                        setManualVisible(false);
+                      } else {
+                        openManualMatch();
+                      }
+                    }}
+                  >
+                    {manualVisible
+                      ? "Fechar correspondência manual"
+                      : "Mandar correspondência manual"}
+                  </button>
+
+                  {manualVisible && (
+                    <div className="admin-form" style={{ marginTop: 20 }}>
+                      <label>
+                        Objeto encontrado
+                        <select
+                          value={manualFoundId}
+                          onChange={(e) => setManualFoundId(e.target.value)}
+                        >
+                          <option value="">Selecione um objeto encontrado</option>
+                          {manualItems
+                            .filter(
+                              (item) =>
+                                item.type === "ENCONTRADO" &&
+                                item.status === "ENCONTRADO"
+                            )
+                            .map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.title} — {item.location_name}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        Objeto perdido
+                        <select
+                          value={manualLostId}
+                          onChange={(e) => setManualLostId(e.target.value)}
+                        >
+                          <option value="">Selecione um objeto perdido</option>
+                          {manualItems
+                            .filter(
+                              (item) =>
+                                item.type === "PERDIDO" &&
+                                item.status === "PERDIDO"
+                            )
+                            .map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.title} — {item.location_name}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+
+                      <div className="admin-actions">
+                        <button
+                          type="button"
+                          disabled={
+                            busy ||
+                            manualLoading ||
+                            !manualFoundId ||
+                            !manualLostId
+                          }
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                "Deseja encaminhar esta correspondência ao usuário?"
+                              )
+                            ) {
+                              return;
+                            }
+
+                            await action(
+                              () =>
+                                adminService.sendMatch(
+                                  manualFoundId,
+                                  manualLostId
+                                ),
+                              "Correspondência manual enviada ao usuário."
+                            );
+                          }}
+                        >
+                          Enviar correspondência
+                        </button>
+                      </div>
+
+                      {manualLoading && <p>Carregando objetos...</p>}
+                    </div>
+                  )}
+                </section>
+
 
                 <ItemTable
                   items={data?.items}
                   onSelect={async (item) => {
                     try {
-                      setSelected(
-                        await adminService.item(item.id)
-                      );
+                      setSelected(await adminService.item(item.id));
                     } catch (e) {
                       setError(e.message);
                     }
@@ -434,10 +540,7 @@ export default function AdminPage() {
 
                 {selected && (
                   <section className="admin-card admin-detail">
-                    <button
-                      className="quiet"
-                      onClick={() => setSelected(null)}
-                    >
+                    <button className="quiet" onClick={() => setSelected(null)}>
                       Fechar detalhes
                     </button>
 
@@ -446,17 +549,13 @@ export default function AdminPage() {
                     <p>{selected.description}</p>
 
                     <p>
-                      <b>Local:</b>{' '}
-                      {selected.location_name} ·{' '}
-                      <b>Data:</b>{' '}
-                      {date(selected.event_date)} ·{' '}
-                      <b>Status:</b>{' '}
+                      <b>Local:</b> {selected.location_name} · <b>Data:</b>{" "}
+                      {date(selected.event_date)} · <b>Status:</b>{" "}
                       {statusLabel(selected.status)}
                     </p>
 
                     <p>
-                      <b>Responsável:</b>{' '}
-                      {selected.user_id}
+                      <b>Responsável:</b> {selected.user_id}
                     </p>
 
                     <select
@@ -470,11 +569,11 @@ export default function AdminPage() {
                       }
                     >
                       {[
-                        'PERDIDO',
-                        'ENCONTRADO',
-                        'EM_NEGOCIACAO',
-                        'DEVOLVIDO',
-                        'CANCELADO',
+                        "PERDIDO",
+                        "ENCONTRADO",
+                        "EM_NEGOCIACAO",
+                        "DEVOLVIDO",
+                        "CANCELADO",
                       ].map((s) => (
                         <option key={s} value={s}>
                           {statusLabel(s)}
@@ -487,11 +586,8 @@ export default function AdminPage() {
                       onClick={() =>
                         action(
                           () =>
-                            adminService.status(
-                              selected.id,
-                              selected.status
-                            ),
-                          'Status atualizado.'
+                            adminService.status(selected.id, selected.status),
+                          "Status atualizado.",
                         )
                       }
                     >
@@ -502,12 +598,11 @@ export default function AdminPage() {
               </>
             )}
 
-            {secao === 'correspondencias' && (
+            {secao === "correspondencias" && (
               <>
                 <p className="admin-hint">
-                  Selecione um objeto encontrado para analisar as
-                  sugestões. O envio ao usuário depende da sua
-                  confirmação.
+                  Selecione um objeto encontrado para analisar as sugestões. O
+                  envio ao usuário depende da sua confirmação.
                 </p>
 
                 <ItemTable
@@ -515,12 +610,15 @@ export default function AdminPage() {
                   onSelect={async (item) => {
                     setSelected(item);
                     setMatches(null);
+                    setMatchesError("");
+                    setError("");
 
                     try {
-                      setMatches(
-                        await adminService.matches(item.id)
-                      );
+                      setMatches(await adminService.matches(item.id));
                     } catch (e) {
+                      setMatchesError(
+                        "Não foi possível carregar as sugestões. Tente novamente em Ver detalhes.",
+                      );
                       setError(e.message);
                     }
                   }}
@@ -528,30 +626,119 @@ export default function AdminPage() {
 
                 {selected && (
                   <section className="admin-card">
-                    <h2>
-                      Sugestões para {selected.title}
-                    </h2>
+                    <button
+                      className="secondary"
+                      onClick={() => {
+                        setSelected(null);
+                        setMatches(null);
+                      }}
+                    >
+                      Voltar à lista
+                    </button>
+                    <h2>Sugestões para {selected.title}</h2>
+                    
+                    <div className="admin-card">
+                      <h3>Correspondência manual</h3>
 
-                    {matches ? (
+                      <p className="admin-hint">
+                        Selecione qualquer objeto perdido para encaminhar
+                        uma possível correspondência, mesmo que o sistema
+                        não tenha sugerido automaticamente.
+                      </p>
+
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => {
+                          if (manualOpen) {
+                            setManualOpen(false);
+                          } else {
+                            loadManualLostItems();
+                          }
+                        }}
+                      >
+                        {manualOpen
+                          ? "Fechar correspondência manual"
+                          : "Criar correspondência manual"}
+                      </button>
+
+                      {manualOpen && (
+                        <div style={{ marginTop: 20 }}>
+                          <input
+                            type="text"
+                            placeholder="Pesquisar objeto perdido..."
+                            value={manualSearch}
+                            onChange={(e) => setManualSearch(e.target.value)}
+                          />
+
+                          {manualLoading ? (
+                            <p>Carregando objetos perdidos...</p>
+                          ) : (
+                            manualLostItems
+                              .filter((item) =>
+                                `${item.title} ${item.location_name || ""}`
+                                  .toLowerCase()
+                                  .includes(manualSearch.toLowerCase())
+                              )
+                              .map((item) => (
+                                <div className="admin-row" key={item.id}>
+                                  <div>
+                                    <b>{item.title}</b>
+                                    <p>{item.location_name}</p>
+                                    <small>
+                                      {statusLabel(item.status)}
+                                    </small>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={busy}
+                                    onClick={() => {
+                                      if (
+                                        !window.confirm(
+                                          `Enviar correspondência entre "${selected.title}" e "${item.title}"?`
+                                        )
+                                      ) {
+                                        return;
+                                      }
+
+                                      action(
+                                        () =>
+                                          adminService.sendMatch(
+                                            selected.id,
+                                            item.id
+                                          ),
+                                        "Correspondência manual encaminhada ao usuário."
+                                      );
+                                    }}
+                                  >
+                                    Enviar correspondência
+                                  </button>
+                                </div>
+                              ))
+                          )}
+
+                          {!manualLoading && manualLostItems.length === 0 && (
+                            <p>Nenhum objeto perdido disponível.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+
+                    {matchesError ? (
+                      <p role="alert">{matchesError}</p>
+                    ) : matches ? (
                       matches.items.length ? (
                         matches.items.map((m) => (
-                          <div
-                            className="admin-row"
-                            key={m.matched_item_id}
-                          >
+                          <div className="admin-row" key={m.matched_item_id}>
                             <div>
-                              <b>
-                                {m.matched_item_title}
-                              </b>
+                              <b>{m.matched_item_title}</b>
 
-                              <p>
-                                {m.matched_item_description}
-                              </p>
+                              <p>{m.matched_item_description}</p>
 
                               <small>
-                                Similaridade:{' '}
-                                {m.similarity_score.toFixed(1)}
-                                % ·{' '}
+                                Similaridade: {m.similarity_score.toFixed(1)}% ·{" "}
                                 {m.matched_item_location_name}
                               </small>
                             </div>
@@ -563,9 +750,9 @@ export default function AdminPage() {
                                   () =>
                                     adminService.sendMatch(
                                       selected.id,
-                                      m.matched_item_id
+                                      m.matched_item_id,
                                     ),
-                                  'Correspondência encaminhada ao usuário.'
+                                  "Correspondência encaminhada ao usuário.",
                                 )
                               }
                             >
@@ -574,58 +761,65 @@ export default function AdminPage() {
                           </div>
                         ))
                       ) : (
-                        <p>
-                          Não há sugestões para este objeto.
-                        </p>
+                        <p>Não há sugestões para este objeto.</p>
                       )
                     ) : (
-                      <p>
-                        Carregando sugestões...
-                      </p>
+                      <p>Carregando sugestões...</p>
                     )}
                   </section>
                 )}
               </>
             )}
 
-            {secao === 'solicitacoes' && (
+            {secao === "solicitacoes" && (
               <List
                 rows={data?.items}
                 render={(c) => (
-                  <div
-                    className="admin-row"
-                    key={c.id}
-                  >
+                  <div className="admin-row" key={c.id}>
                     <div>
                       <b>{c.item?.title}</b>
 
                       <p>
-                        {c.requester?.name} ·{' '}
-                        {c.requester?.email}
+                        {c.requester?.name} · {c.requester?.email}
                       </p>
 
-                      <p>
-                        Comprovação: {c.proof_description}
-                      </p>
+                      <p>Comprovação: {c.proof_description}</p>
 
                       <small>
-                        {statusLabel(c.status)} ·{' '}
-                        {date(c.created_at)}
+                        {statusLabel(c.status)} · {date(c.created_at)}
                       </small>
                     </div>
 
-                    {c.status === 'PENDENTE' && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() =>
+                        setChatClaimId(
+                          chatClaimId === c.id ? null : c.id
+                        )
+                      }
+                    >
+                      {chatClaimId === c.id
+                        ? "Fechar conversa"
+                        : "Conversar com usuário"}
+                    </button>
+
+                    {chatClaimId === c.id && (
+                      <ClaimChat
+                        itemId={c.item_id}
+                        interlocutorId={c.requester_id}
+                        interlocutorNome={c.requester?.name}
+                      />
+                    )}
+
+                    {c.status === "PENDENTE" && (
                       <div className="admin-actions">
                         <button
                           disabled={busy}
                           onClick={() =>
                             action(
-                              () =>
-                                adminService.claimStatus(
-                                  c.id,
-                                  'APROVADA'
-                                ),
-                              'Solicitação aprovada.'
+                              () => adminService.claimStatus(c.id, "APROVADA"),
+                              "Solicitação aprovada.",
                             )
                           }
                         >
@@ -637,12 +831,8 @@ export default function AdminPage() {
                           disabled={busy}
                           onClick={() =>
                             action(
-                              () =>
-                                adminService.claimStatus(
-                                  c.id,
-                                  'REJEITADA'
-                                ),
-                              'Solicitação rejeitada.'
+                              () => adminService.claimStatus(c.id, "REJEITADA"),
+                              "Solicitação rejeitada.",
                             )
                           }
                         >
@@ -654,244 +844,16 @@ export default function AdminPage() {
                 )}
               />
             )}
-
-            {secao === 'usuarios' && (
-              <>
-                <div className="admin-toolbar">
-                  <input
-                    placeholder="Buscar nome ou e-mail"
-                    value={search}
-                    onChange={(e) =>
-                      setSearch(e.target.value)
-                    }
-                  />
-                </div>
-
-                <List
-                  rows={data?.items}
-                  render={(u) => (
-                    <div
-                      className="admin-row"
-                      key={u.id}
-                    >
-                      <div>
-                        <b>{u.name}</b>
-
-                        <p>
-                          {u.email} ·{' '}
-                          {u.phone || 'Sem telefone'}
-                        </p>
-
-                        <small>
-                          {u.role} ·{' '}
-                          {u.is_active
-                            ? 'Ativo'
-                            : 'Inativo'}
-                        </small>
-                      </div>
-
-                      <button
-                        className="secondary"
-                        disabled={
-                          busy ||
-                          u.id ===
-                            authService.getUsuario()?.id
-                        }
-                        onClick={() =>
-                          action(
-                            () =>
-                              adminService.userStatus(
-                                u.id,
-                                !u.is_active
-                              ),
-                            'Situação do usuário atualizada.'
-                          )
-                        }
-                      >
-                        {u.is_active
-                          ? 'Desativar'
-                          : 'Ativar'}
-                      </button>
-                    </div>
-                  )}
-                />
-              </>
-            )}
-
-            {secao === 'categorias' && (
-              <>
-                <section className="admin-card">
-                  <h2>
-                    {categoryForm.id
-                      ? 'Editar categoria'
-                      : 'Nova categoria'}
-                  </h2>
-
-                  <form
-                    className="admin-form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-
-                      action(
-                        () =>
-                          categoryForm.id
-                            ? adminService.updateCategory(
-                                categoryForm.id,
-                                {
-                                  name: categoryForm.name,
-                                  description:
-                                    categoryForm.description,
-                                }
-                              )
-                            : adminService.createCategory({
-                                name: categoryForm.name,
-                                description:
-                                  categoryForm.description,
-                              }),
-                        'Categoria salva.'
-                      );
-
-                      setCategoryForm({
-                        id: null,
-                        name: '',
-                        description: '',
-                      });
-                    }}
-                  >
-                    <label>
-                      Nome
-
-                      <input
-                        required
-                        minLength={3}
-                        value={categoryForm.name}
-                        onChange={(e) =>
-                          setCategoryForm({
-                            ...categoryForm,
-                            name: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-
-                    <label>
-                      Descrição
-
-                      <input
-                        value={categoryForm.description}
-                        onChange={(e) =>
-                          setCategoryForm({
-                            ...categoryForm,
-                            description: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-
-                    <button disabled={busy}>
-                      Salvar categoria
-                    </button>
-                  </form>
-                </section>
-
-                <List
-                  rows={data}
-                  render={(c) => (
-                    <div
-                      className="admin-row"
-                      key={c.id}
-                    >
-                      <b>{c.name}</b>
-
-                      <div className="admin-actions">
-                        <button
-                          className="secondary"
-                          onClick={() =>
-                            setCategoryForm({
-                              id: c.id,
-                              name: c.name,
-                              description:
-                                c.description || '',
-                            })
-                          }
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          className="secondary"
-                          disabled={busy}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Excluir a categoria ${c.name}?`
-                              )
-                            ) {
-                              action(
-                                () =>
-                                  adminService.deleteCategory(
-                                    c.id
-                                  ),
-                                'Categoria excluída.'
-                              );
-                            }
-                          }}
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                />
-              </>
-            )}
-
-            {secao === 'denuncias' && (
-              <List
-                rows={data?.items}
-                render={(r) => (
-                  <div
-                    className="admin-row"
-                    key={r.id}
-                  >
-                    <div>
-                      <b>
-                        {r.is_resolved
-                          ? 'Resolvida'
-                          : 'Pendente'}
-                      </b>
-
-                      <p>{r.reason}</p>
-
-                      <small>
-                        Denunciante: {r.reporter_id} ·{' '}
-                        {date(r.created_at)} · Objeto:{' '}
-                        {r.reported_item_id || '—'}
-                      </small>
-                    </div>
-
-                    {!r.is_resolved && (
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          action(
-                            () =>
-                              adminService.resolveReport(
-                                r.id
-                              ),
-                            'Denúncia resolvida.'
-                          )
-                        }
-                      >
-                        Marcar resolvida
-                      </button>
-                    )}
-                  </div>
-                )}
-              />
-            )}
           </>
         )}
+        <footer className="admin-footer-links">
+          <NavLink to="/funcionario/dashboard">← Voltar à visão geral</NavLink>
+          <NavLink
+            to={`/funcionario/${sections[(sections.findIndex(([key]) => key === secao) + 1) % sections.length][0]}`}
+          >
+            Próxima seção →
+          </NavLink>
+        </footer>
       </main>
     </div>
   );
@@ -903,45 +865,64 @@ function List({ rows, render }) {
       {rows?.length ? (
         rows.map(render)
       ) : (
-        <p className="admin-empty">
-          Nenhum registro encontrado.
-        </p>
+        <p className="admin-empty">Nenhum registro encontrado.</p>
       )}
     </section>
   );
 }
 
+
+
 function ItemTable({ items, onSelect }) {
   return (
     <List
       rows={items}
-      render={(item) => (
-        <div
-          className="admin-row"
-          key={item.id}
-        >
-          <div>
-            <b>{item.title}</b>
+      render={(item) => {
+        const foto = item.images?.[0];
+        const url = imageUrl(foto?.image_url || foto?.url);
 
-            <p>
-              {item.location_name} ·{' '}
-              {date(item.event_date)}
-            </p>
+        return (
+          <div className="admin-row" key={item.id}>
+            <div className="admin-item-summary">
+              <div className="admin-item-thumbnail">
+                {url ? (
+                  <img
+                    src={url}
+                    alt={`Foto de ${item.title}`}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement.classList.add(
+                        "admin-item-no-image"
+                      );
+                    }}
+                  />
+                ) : (
+                  <span>Sem foto</span>
+                )}
+              </div>
 
-            <small>
-              {statusLabel(item.type)} ·{' '}
-              {statusLabel(item.status)}
-            </small>
+              <div className="admin-item-info">
+                <b>{item.title}</b>
+                <p>
+                  {item.location_name} · {date(item.event_date)}
+                </p>
+                <small>
+                  {statusLabel(item.type)} ·{" "}
+                  {statusLabel(item.status)}
+                </small>
+              </div>
+            </div>
+
+            <button
+              className="secondary"
+              onClick={() => onSelect(item)}
+            >
+              Ver detalhes
+            </button>
           </div>
-
-          <button
-            className="secondary"
-            onClick={() => onSelect(item)}
-          >
-            Ver detalhes
-          </button>
-        </div>
-      )}
+        );
+      }}
     />
   );
 }

@@ -17,6 +17,10 @@ if TYPE_CHECKING:
     pass
 
 
+class ModeratedItemError(ValueError):
+    """Uma publicação indisponível não pode voltar ao fluxo de devolução."""
+
+
 class ClaimService:
     """Serviço de negócio para operações de reivindicação com regras de validação"""
 
@@ -134,6 +138,9 @@ class ClaimService:
             raise PermissionError(
                 "Apenas o proprietário do item ou administradores podem atualizar reivindicações"
             )
+
+        if status_in.status == ClaimStatus.APROVADA and claim.item.status in (ItemStatus.CANCELADO, ItemStatus.DEVOLVIDO):
+            raise ModeratedItemError("Não é possível aprovar uma solicitação de publicação removida ou item devolvido")
 
         # Atualizar status da reivindicação
         claim.status = status_in.status

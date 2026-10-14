@@ -28,10 +28,7 @@ if TYPE_CHECKING:
 class Item(Base, TimestampMixin):
     __tablename__ = "items"
     __table_args__ = (
-        Index("ix_items_title", "title"),
-        Index("ix_items_status", "status"),
         Index("ix_items_event_date", "event_date"),
-        Index("ix_items_category_id", "category_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

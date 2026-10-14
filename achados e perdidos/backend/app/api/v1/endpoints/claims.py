@@ -15,7 +15,7 @@ from app.schemas.claim import (
     ClaimResponse,
     ClaimStatusUpdate,
 )
-from app.services.claim_service import ClaimService
+from app.services.claim_service import ClaimService, ModeratedItemError
 from app.services.notification_service import NotificationService
 from app.models.enums import NotificationType
 
@@ -193,6 +193,9 @@ async def update_claim_status(
         await db.commit()
         return ClaimDetailResponse.model_validate(claim)
 
+    except ModeratedItemError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     except ValueError as e:
         await db.rollback()
         raise HTTPException(

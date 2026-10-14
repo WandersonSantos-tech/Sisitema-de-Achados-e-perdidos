@@ -3,7 +3,8 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,8 @@ from app.models.user import User
 from app.schemas.admin import CategoryCreate, CategoryUpdate
 from app.schemas.claim import ClaimDetailResponse
 from app.schemas.item import ItemListResponse, ItemResponse
-from app.schemas.report import ReportResponse
+from app.schemas.report import ReportResponse, ReportDetailResponse
+from app.services.moderation_service import decide_report, remove_publication
 from app.services.matching_service import matching_service
 
 
@@ -123,6 +125,9 @@ async def stats(
 
     return {
         "total_users": await count(User),
+        "blocked_users": await count(User, User.is_active.is_(False)),
+        "removed_items": await count(Item, Item.status == ItemStatus.CANCELADO),
+        "resolved_reports": await count(Report, Report.is_resolved.is_(True)),
         "total_active_items": active,
         "total_returned_items": returned,
         "return_success_rate": round(
@@ -164,10 +169,14 @@ async def items(
         le=100,
     ),
     item_type: ItemType | None = None,
+    status_filter: ItemStatus | None = None,
     search: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     filters = []
+
+    if status_filter:
+        filters.append(Item.status == status_filter)
 
     if item_type:
         filters.append(
@@ -295,6 +304,7 @@ async def matches(
     }
 
 
+
 @router.post(
     "/items/{item_id}/matches/{lost_item_id}/send",
     status_code=201,
@@ -304,16 +314,10 @@ async def send_match(
     lost_item_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    found = await get_item_or_404(
-        db,
-        item_id,
-    )
+    found = await get_item_or_404(db, item_id)
+    lost = await get_item_or_404(db, lost_item_id)
 
-    lost = await get_item_or_404(
-        db,
-        lost_item_id,
-    )
-
+    # Verifica se os objetos são de tipos diferentes.
     if (
         found.type != ItemType.ENCONTRADO
         or lost.type != ItemType.PERDIDO
@@ -324,6 +328,7 @@ async def send_match(
             "Selecione um item encontrado e um perdido",
         )
 
+    # Impede correspondência entre objetos indisponíveis.
     if (
         found.status != ItemStatus.ENCONTRADO
         or lost.status != ItemStatus.PERDIDO
@@ -333,31 +338,22 @@ async def send_match(
             "Item indisponível para correspondência",
         )
 
-    suggested = (
-        await matching_service.find_matches_for_item(
-            db,
-            found.id,
-        )
+    # A correspondência pode ser enviada manualmente,
+    # mesmo que os objetos não tenham sido sugeridos
+    # pelo algoritmo de similaridade.
+
+    message = (
+        f"O objeto encontrado '{found.title}' pode corresponder "
+        f"ao seu item perdido '{lost.title}'. "
+        "Confira as informações e solicite a devolução se for seu."
     )
 
-    if not any(
-        str(m["matched_item_id"]) == str(lost.id)
-        for m in suggested
-    ):
-        raise HTTPException(
-            400,
-            "A correspondência não consta das sugestões atuais",
-        )
-
-    # A tabela atual não guarda o par de itens; impedimos duplicação pela mensagem e destinatário.
-    message = f"O objeto encontrado '{found.title}' pode corresponder ao seu item perdido '{lost.title}'. Confira as informações e solicite a devolução se for seu."
-
+    # Evita o envio repetido da mesma correspondência.
     existing = await db.scalar(
         select(Notification.id).where(
             Notification.user_id == lost.user_id,
             Notification.item_id == lost.id,
-            Notification.type
-            == NotificationType.MATCH_FOUND,
+            Notification.type == NotificationType.MATCH_FOUND,
             Notification.message == message,
         )
     )
@@ -368,6 +364,7 @@ async def send_match(
             "Correspondência já encaminhada",
         )
 
+    # Notifica o proprietário do objeto perdido.
     db.add(
         Notification(
             user_id=lost.user_id,
@@ -436,6 +433,7 @@ async def users(
         le=100,
     ),
     search: str | None = None,
+    active: bool | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     filters = (
@@ -452,6 +450,9 @@ async def users(
         if search
         else []
     )
+
+    if active is not None:
+        filters.append(User.is_active == active)
 
     total = (
         await db.scalar(
@@ -667,68 +668,50 @@ async def delete_category(
     await db.commit()
 
 
-@router.get("/reports")
-async def reports(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(
-        20,
-        ge=1,
-        le=100,
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    total = (
-        await db.scalar(
-            select(func.count())
-            .select_from(Report)
-        )
-        or 0
-    )
+class ReportDecisionInput(BaseModel):
+    action: Literal["ARQUIVAR", "REMOVER_PUBLICACAO", "BLOQUEAR_USUARIO"]
+    notes: str = Field(..., min_length=10, max_length=500)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
-    result = await db.execute(
-        select(Report)
-        .order_by(
-            Report.created_at.desc()
-        )
-        .offset(
-            (page - 1) * page_size
-        )
-        .limit(page_size)
-    )
+class RemovalInput(BaseModel):
+    reason: str = Field(..., min_length=10, max_length=255)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
-    return {
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "items": [
-            ReportResponse.model_validate(x)
-            for x in result.scalars().all()
-        ],
-    }
+@router.get("/users/{user_id}")
+async def user_detail(user_id: UUID, db: AsyncSession = Depends(get_db)):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "Usuário não encontrado")
+    return {"id": user.id, "name": user.name, "email": user.email, "phone": user.phone,
+        "role": user.role, "is_active": user.is_active, "created_at": user.created_at,
+        "total_items": await db.scalar(select(func.count()).select_from(Item).where(Item.user_id == user.id))}
 
-
-@router.patch(
-    "/reports/{report_id}/resolve"
-)
-async def resolve_report(
-    report_id: UUID,
-    db: AsyncSession = Depends(get_db),
-):
-    report = await db.get(
-        Report,
-        report_id,
-    )
-
-    if not report:
-        raise HTTPException(
-            404,
-            "Denúncia não encontrada",
-        )
-
-    report.is_resolved = True
-
+@router.post("/items/{item_id}/remove", response_model=ItemResponse)
+async def remove_item(item_id: UUID, body: RemovalInput, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+    await remove_publication(db, item_id, admin, body.reason)
     await db.commit()
+    return ItemResponse.model_validate(await get_item_or_404(db, item_id))
 
-    return ReportResponse.model_validate(
-        report
-    )
+@router.get("/reports")
+async def reports(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), resolved: bool | None = None, search: str = "", db: AsyncSession = Depends(get_db)):
+    filters = [Report.reason.ilike(f"%{search}%")]
+    if resolved is not None:
+        filters.append(Report.is_resolved == resolved)
+    total = await db.scalar(select(func.count()).select_from(Report).where(*filters))
+    result = await db.scalars(select(Report).options(selectinload(Report.reporter), selectinload(Report.reported_user), selectinload(Report.reported_item)).where(*filters).order_by(Report.created_at.desc()).offset((page-1)*page_size).limit(page_size))
+    return {"total": total, "page": page, "page_size": page_size, "items": [ReportDetailResponse.model_validate(x) for x in result.all()]}
+
+@router.get("/reports/{report_id}", response_model=ReportDetailResponse)
+async def report_detail(report_id: UUID, db: AsyncSession = Depends(get_db)):
+    report = await db.scalar(select(Report).where(Report.id == report_id).options(selectinload(Report.reporter), selectinload(Report.reported_user), selectinload(Report.reported_item)))
+    if not report:
+        raise HTTPException(404, "Denúncia não encontrada")
+    return ReportDetailResponse.model_validate(report)
+
+@router.patch("/reports/{report_id}/decision", response_model=ReportResponse)
+async def report_decision(report_id: UUID, body: ReportDecisionInput, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+    return ReportResponse.model_validate(await decide_report(db, report_id, admin, body.action, body.notes))
+
+@router.patch("/reports/{report_id}/resolve", response_model=ReportResponse)
+async def resolve_report(report_id: UUID, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+    return ReportResponse.model_validate(await decide_report(db, report_id, admin, "ARQUIVAR", "Concluída pelo administrador sem sanção."))

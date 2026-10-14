@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.report import Report
@@ -76,6 +76,20 @@ async def create_report(
             raise ValueError(
                 f"Item {report_in.reported_item_id} não encontrado"
             )
+
+    if report_in.reported_item_id and reported_item.user_id == reporter.id:
+        raise ValueError("Você não pode denunciar a própria publicação")
+    if report_in.reported_item_id and reported_item.status.value == "CANCELADO":
+        raise ValueError("Esta publicação já foi removida")
+    # Evitar denúncias pendentes repetidas para o mesmo alvo.
+    pending = await db.scalar(select(Report.id).where(
+        Report.reporter_id == reporter.id,
+        Report.reported_user_id == report_in.reported_user_id,
+        Report.reported_item_id == report_in.reported_item_id,
+        Report.is_resolved.is_(False),
+    ).limit(1))
+    if pending:
+        raise ValueError("Você já tem uma denúncia pendente para este alvo")
 
     # Criar denúncia
     report = Report(

@@ -5,7 +5,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy import select
+from app.models.claim import Claim
+from app.models.enums import UserRole
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.message import (
@@ -15,6 +17,8 @@ from app.schemas.message import (
     SenderInfo,
 )
 from app.services.message_service import MessageService
+from app.models.status_history import StatusHistory
+from app.models.enums import ItemStatus
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -46,8 +50,17 @@ async def send_message(
     Uma notificação é disparada para o destinatário informando a nova mensagem.
     """
     try:
-        message = await MessageService.send_message(db, item_id, current_user, msg_in)
+        message = await MessageService.send_message(
+            db, item_id, current_user, msg_in
+        )
+
         await db.commit()
+
+        await db.refresh(
+            message,
+            attribute_names=["sender", "receiver"]
+        )
+
         return MessageResponse.model_validate(message)
 
     except ValueError as e:
@@ -98,6 +111,11 @@ async def get_conversation(
         other_user, messages = await MessageService.get_conversation_with_user(
             db, item_id, current_user, interlocutor_id
         )
+        for message in messages:
+            await db.refresh(
+                message,
+                attribute_names=["sender", "receiver"]
+            )
 
         if not other_user:
             raise ValueError(f"Usuário {interlocutor_id} não encontrado")
@@ -120,3 +138,55 @@ async def get_conversation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+@router.get("/claims/{claim_id}/contact")
+async def get_claim_contact(
+    claim_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(
+        select(Claim).where(
+            Claim.id == claim_id,
+            Claim.requester_id == current_user.id,
+        )
+    )
+
+    claim = result.scalar_one_or_none()
+
+    if claim is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Solicitação não encontrada",
+        )
+
+    consulta = (
+        select(User)
+        .join(
+            StatusHistory,
+            StatusHistory.changed_by == User.id
+        )
+        .where(
+            StatusHistory.item_id == claim.item_id,
+            StatusHistory.new_status == ItemStatus.EM_NEGOCIACAO,
+            StatusHistory.note == f"Reivindicação #{claim.id} aprovada",
+            User.role == UserRole.ADMIN,
+        )
+        .order_by(StatusHistory.created_at.desc())
+        .limit(1)
+    )
+
+    resultado_funcionario = await db.execute(consulta)
+    funcionario = resultado_funcionario.scalar_one_or_none()
+
+
+    if funcionario is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Não foi possível identificar o administrador responsável pela aprovação",
+        )
+
+    return {
+        "id": str(funcionario.id),
+        "name": funcionario.name,
+    }

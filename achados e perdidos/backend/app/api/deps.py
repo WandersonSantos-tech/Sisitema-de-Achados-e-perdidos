@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from uuid import UUID
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -39,6 +40,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     except jwt.PyJWTError:
         raise credentials_exception
 
+    try:
+        user_id = UUID(user_id)
+    except (ValueError, TypeError, AttributeError):
+        raise credentials_exception
     q = await db.execute(select(User).where(User.id == user_id))
     user = q.scalar_one_or_none()
     if user is None:

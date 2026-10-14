@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ReportCreate(BaseModel):
@@ -16,14 +16,14 @@ class ReportCreate(BaseModel):
     reported_item_id: Optional[uuid.UUID] = Field(
         None, description="ID do item denunciado (opcional)")
 
-    @field_validator("reported_user_id", "reported_item_id")
-    @classmethod
-    def at_least_one_target(cls, v, info):
-        """Valida que pelo menos um alvo (usuário ou item) foi informado"""
-        if info.data.get("reported_user_id") is None and info.data.get("reported_item_id") is None:
-            raise ValueError(
-                "Pelo menos um alvo (usuário ou item) deve ser informado")
-        return v
+    @model_validator(mode="after")
+    def validate_target(self):
+        if not self.reported_user_id and not self.reported_item_id:
+            raise ValueError("Pelo menos um alvo deve ser informado")
+        self.reason = self.reason.strip()
+        if len(self.reason) < 10:
+            raise ValueError("Descreva o motivo com pelo menos 10 caracteres")
+        return self
 
 
 class ReportResponse(BaseModel):
@@ -35,6 +35,10 @@ class ReportResponse(BaseModel):
     reason: str
     is_resolved: bool
     created_at: datetime
+    resolution_action: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[uuid.UUID] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,6 +73,7 @@ class ReportedItemInfo(BaseModel):
     """Informações do item denunciado"""
     id: uuid.UUID
     title: str
+    user_id: uuid.UUID
     status: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -83,6 +88,10 @@ class ReportDetailResponse(BaseModel):
     reason: str
     is_resolved: bool
     created_at: datetime
+    resolution_action: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[uuid.UUID] = None
     reporter: Optional[ReporterInfo] = None
     reported_user: Optional[ReportedUserInfo] = None
     reported_item: Optional[ReportedItemInfo] = None

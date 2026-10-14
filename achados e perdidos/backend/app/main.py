@@ -49,3 +49,10 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": settings.PROJECT_NAME,
     }
+
+# Rotas adicionais importadas do backend remoto.
+from app.api.v1.endpoints.reports import router as reports_router
+from app.api.v1.endpoints.reviews import router as reviews_router, user_reviews_router
+app.include_router(reports_router, prefix=settings.API_V1_STR)
+app.include_router(reviews_router, prefix=settings.API_V1_STR)
+app.include_router(user_reviews_router, prefix=settings.API_V1_STR)

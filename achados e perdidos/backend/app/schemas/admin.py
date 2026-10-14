@@ -3,18 +3,27 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.enums import UserRole
 
 
 class CategoryCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     """Schema para criação de categoria"""
     name: str = Field(..., min_length=3, max_length=80)
     description: Optional[str] = Field(None, max_length=500)
 
 
 class CategoryUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @model_validator(mode="after")
+    def name_not_null(self):
+        if "name" in self.model_fields_set and self.name is None:
+            raise ValueError("O nome da categoria não pode ser nulo")
+        return self
+
     """Schema para atualização de categoria"""
     name: Optional[str] = Field(None, min_length=3, max_length=80)
     description: Optional[str] = Field(None, max_length=500)

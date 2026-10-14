@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.claim import Claim
+from app.models.enums import UserRole
 from app.models.item import Item
 from app.models.message import Message
 from app.models.user import User
@@ -65,10 +66,20 @@ class MessageService:
             )
             has_claim = claim_result.scalar_one_or_none() is not None
 
-        if sender.id != item.user_id and not has_claim:
-            raise PermissionError(
-                "Você só pode enviar mensagens para itens que você publicou ou para os quais possui reivindicação"
-            )
+            if sender.id != item.user_id and not has_claim:
+                if sender.role == UserRole.ADMIN:
+                    result = await db.execute(
+                        select(Claim.id).where(
+                            Claim.item_id == item_id,
+                            Claim.requester_id == msg_in.receiver_id,
+                        )
+                    )
+                    has_claim = result.scalar_one_or_none() is not None
+
+                if not has_claim:
+                    raise PermissionError(
+                        "Você não possui autorização para enviar mensagens sobre este item"
+                    )
 
         # Validar que receiver_id existe e é um usuário válido
         receiver_result = await db.execute(
@@ -95,10 +106,14 @@ class MessageService:
             )
             receiver_involved = receiver_claim.scalar_one_or_none() is not None
 
-        if not receiver_involved:
-            raise PermissionError(
-                "O destinatário não está envolvido com este item"
-            )
+            if not receiver_involved:
+                if receiver.role == UserRole.ADMIN and has_claim:
+                    receiver_involved = True
+
+                if not receiver_involved:
+                    raise PermissionError(
+                        "O destinatário não está envolvido com este item"
+                    )
 
         # Criar mensagem
         message = Message(
@@ -158,11 +173,21 @@ class MessageService:
                 )
             )
             current_user_involved = claim_result.scalar_one_or_none() is not None
+            
+            if not current_user_involved:
+                if current_user.role == UserRole.ADMIN:
+                    result = await db.execute(
+                        select(Claim.id).where(
+                            Claim.item_id == item_id,
+                            Claim.requester_id == other_user_id,
+                        )
+                    )
+                    current_user_involved = result.scalar_one_or_none() is not None
 
-        if not current_user_involved:
-            raise PermissionError(
-                "Você não está envolvido com este item e não pode consultar conversas"
-            )
+                if not current_user_involved:
+                    raise PermissionError(
+                        "Você não está envolvido com este item e não pode consultar conversas"
+                    )
 
         # Validar que other_user está envolvido com item
         other_user_involved = False
@@ -179,10 +204,19 @@ class MessageService:
             )
             other_user_involved = other_claim_result.scalar_one_or_none() is not None
 
-        if not other_user_involved:
-            raise PermissionError(
-                "O outro usuário não está envolvido com este item"
-            )
+            if not other_user_involved:
+                other_result = await db.execute(
+                    select(User).where(User.id == other_user_id)
+                )
+                other_user = other_result.scalar_one_or_none()
+
+                if other_user and other_user.role == UserRole.ADMIN:
+                    other_user_involved = current_user_involved
+
+                if not other_user_involved:
+                    raise PermissionError(
+                        "O outro usuário não está envolvido com este item"
+                    )
 
         # Recuperar histórico ordenado cronologicamente
         result = await db.execute(

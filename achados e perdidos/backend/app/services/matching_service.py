@@ -244,10 +244,10 @@ class MatchingService:
         )
 
         geographical_score = MatchingService._calculate_geographical_proximity_score(
-            target_item.latitude,
-            target_item.longitude,
-            candidate_item.latitude,
-            candidate_item.longitude,
+            getattr(target_item, "latitude", None),
+            getattr(target_item, "longitude", None),
+            getattr(candidate_item, "latitude", None),
+            getattr(candidate_item, "longitude", None),
             target_item.location_name,
             candidate_item.location_name,
         )

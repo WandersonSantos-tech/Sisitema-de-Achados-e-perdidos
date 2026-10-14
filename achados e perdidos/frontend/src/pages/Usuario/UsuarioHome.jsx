@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { notificationService } from "../../services/notificationService";
 import { authService } from "../../services/authService";
 import { itemService } from "../../services/itemService";
@@ -201,6 +201,10 @@ function Icon({ name, size = 22 }) {
 
 function UsuarioHome() {
   const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    if (location.hash === "#correspondencias") document.getElementById("correspondencias")?.scrollIntoView({ behavior: "smooth" });
+  }, [location.hash]);
 
   const usuario = authService.getUsuario();
 
@@ -512,6 +516,7 @@ async function carregarCorrespondenciasDoItem(item) {
           >
             Solicitações
           </button>
+          <button className="nav-item" onClick={() => navegar("/usuario/denuncias")}>Denúncias</button>
         </nav>
 
         <div className="navbar-actions">
@@ -1440,6 +1445,7 @@ async function carregarCorrespondenciasDoItem(item) {
         </div>
 
         <div className="footer-links">
+          <button onClick={() => navegar("/usuario/denuncias")}>Denúncias</button>
           <button
             onClick={() =>
               navegar("/usuario/perfil")
