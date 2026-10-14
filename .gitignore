@@ -1,2 +1,6 @@
 achados e perdidos/mobile/.expo/
 achados e perdidos/backend/test_prompt6.sh
+backend_temp/
+backend/venv/
+backend/.env
+mobile/.expo/
