@@ -5,6 +5,7 @@ import enum
 
 class UserRole(str, enum.Enum):
     USER = "USER"
+    COLABORADOR = "COLABORADOR"
     ADMIN = "ADMIN"
 
 
