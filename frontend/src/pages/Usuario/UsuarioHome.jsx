@@ -931,55 +931,34 @@ async function carregarCorrespondenciasDoItem(item) {
         </div>
 
         <div className="match-actions">
-          {erroSolicitacao && <p role="alert">{erroSolicitacao}</p>}
-          {correspondenciasItemSelecionado.map((match) => (
-            <div key={match.matched_item_id}>
-              <strong>{match.matched_item_title}</strong>
-              <p>{match.matched_item_description}</p>
-              <button disabled={solicitando} onClick={async () => {
-                setSolicitando(true); setErroSolicitacao("");
-                try {
-                  await claimService.create(match.matched_item_id, {
-                    proof_description: itemCorrespondenciaSelecionado?.description || "Solicitação a partir de correspondência do meu objeto perdido",
-                  });
-                  navigate("/usuario/solicitacoes");
-                } catch (error) { setErroSolicitacao(error.message); }
-                finally { setSolicitando(false); }
-              }}>É meu objeto: solicitar devolução</button>
-            </div>
-          ))}
-          <button
-            onClick={() =>
-              navigate(
-                "/usuario/solicitacoes",
-                {
-                  state: {
-                    itemId:
-                      itemCorrespondenciaSelecionado.id,
+          <div className="match-verification-info">
+            <p style={{ color: "#ffffff", marginBottom: "12px" }}>
+              {correspondenciasItemSelecionado[0]?.is_manual
+                ? "Esta correspondência foi enviada manualmente por um funcionário. Para comprovar que o objeto é seu, converse com a equipe pela área de Solicitações."
+                : "Esta correspondência foi encaminhada pela equipe. Acesse Solicitações para conversar com o funcionário e verificar a propriedade do objeto."}
+            </p>
+          </div>
 
-                    itemTitle:
-                      itemCorrespondenciaSelecionado.title,
-                  },
-                }
-              )
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/usuario/solicitacoes", {
+                state: {
+                  itemId: itemCorrespondenciaSelecionado.id,
+                  itemTitle: itemCorrespondenciaSelecionado.title,
+                },
+              })
             }
           >
             {correspondenciasItemSelecionado.length === 1
               ? "Ver correspondência"
               : `Ver ${correspondenciasItemSelecionado.length} correspondências`}
 
-            <Icon
-              name="arrow"
-              size={18}
-            />
+            <Icon name="arrow" size={18} />
           </button>
 
           <div className="protected-info">
-            <Icon
-              name="shield"
-              size={16}
-            />
-
+            <Icon name="shield" size={16} />
             Informações protegidas
           </div>
         </div>
@@ -987,61 +966,65 @@ async function carregarCorrespondenciasDoItem(item) {
 
       <div className="match-score">
         <div className="score-ring">
-          <strong>
-            {Math.round(
-              Number(
-                correspondenciasItemSelecionado[0]
-                  .similarity_score
-              )
-            )}
+          {correspondenciasItemSelecionado[0]?.is_manual ? (
+            <>
+              <strong style={{ fontSize: "22px" }}>
+                Manual
+              </strong>
+              <span>Enviada pela equipe</span>
+            </>
+          ) : (
+            <>
+              <strong>
+                {Math.round(
+                  Number(
+                    correspondenciasItemSelecionado[0]?.similarity_score || 0
+                  )
+                )}
+                <small>%</small>
+              </strong>
 
-            <small>%</small>
-          </strong>
-
-          <span>
-            melhor resultado
-          </span>
+              <span>Compatibilidade</span>
+            </>
+          )}
         </div>
 
         <p>
-          Maior compatibilidade encontrada para este objeto.
+          {correspondenciasItemSelecionado[0]?.is_manual
+            ? "Correspondência enviada manualmente para verificação de propriedade."
+            : "Correspondência analisada e encaminhada pela equipe."}
         </p>
       </div>
     </div>
   ) : (
     <div className="match-card">
-  <div className="match-card-content">
+      <div className="match-card-content">
+        <div className="match-items-selector">
+          <span className="match-selector-label">
+            SEUS OBJETOS PERDIDOS
+          </span>
 
-    <div className="match-items-selector">
-      <span className="match-selector-label">
-        SEUS OBJETOS PERDIDOS
-      </span>
+          <div className="match-items-tabs">
+            {meusItens.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={
+                  itemCorrespondenciaSelecionado?.id === item.id
+                    ? "match-item-tab active"
+                    : "match-item-tab"
+                }
+                onClick={() => {
+                  setItemCorrespondenciaSelecionado(item.original);
+                  carregarCorrespondenciasDoItem(item.original);
+                }}
+              >
+                {item.titulo}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div className="match-items-tabs">
-        {meusItens.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={
-              itemCorrespondenciaSelecionado?.id === item.id
-                ? "match-item-tab active"
-                : "match-item-tab"
-            }
-            onClick={() => {
-              setItemCorrespondenciaSelecionado(
-                item.original
-              );
-
-              carregarCorrespondenciasDoItem(
-                item.original
-              );
-            }}
-          >
-            {item.titulo}
-          </button>
-        ))}
-      </div>
-    </div>
         <span className="match-label">
           CORRESPONDÊNCIAS
         </span>

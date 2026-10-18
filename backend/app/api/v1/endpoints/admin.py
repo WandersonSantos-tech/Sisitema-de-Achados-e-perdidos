@@ -387,10 +387,25 @@ async def send_match(
         )
     )
 
+    if found.status != ItemStatus.ENCONTRADO:
+        previous_status = found.status
+        found.status = ItemStatus.ENCONTRADO
+
+        db.add(
+            StatusHistory(
+                item_id=found.id,
+                changed_by=staff.id,
+                previous_status=previous_status,
+                new_status=ItemStatus.ENCONTRADO,
+                note="Correspondência enviada ao usuário",
+            )
+        )
+
     await db.commit()
 
     return {
-        "message": "Correspondência enviada ao usuário"
+        "message": "Correspondência enviada ao usuário",
+        "item_status": found.status.value,
     }
 
 

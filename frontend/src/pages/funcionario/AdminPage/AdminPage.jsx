@@ -528,106 +528,50 @@ async function openManualMatch() {
                   )}
                 </section>
 
+                                
 
                 <ItemTable
                   items={data?.items}
-                  onSelect={async (item) => {
-                    try {
-                      setSelected(await adminService.item(item.id));
-                    } catch (e) {
-                      setError(e.message);
-                    }
+                  onSelect={(item) => {
+                    navigate(`/funcionario/publicacoes?id=${encodeURIComponent(item.id)}`);
                   }}
                 />
 
-                {selected && (
-                  <section className="admin-card admin-detail">
-                    <button className="quiet" onClick={() => setSelected(null)}>
-                      Fechar detalhes
-                    </button>
-
-                    <h2>{selected.title}</h2>
-
-                    <p>{selected.description}</p>
-
-                    <p>
-                      <b>Local:</b> {selected.location_name} · <b>Data:</b>{" "}
-                      {date(selected.event_date)} · <b>Status:</b>{" "}
-                      {statusLabel(selected.status)}
-                    </p>
-
-                    <p>
-                      <b>Responsável:</b> {selected.user_id}
-                    </p>
-
-                    <select
-                      aria-label="Novo status"
-                      value={selected.status}
-                      onChange={(e) =>
-                        setSelected({
-                          ...selected,
-                          status: e.target.value,
-                        })
-                      }
-                    >
-                      {[
-                        "PERDIDO",
-                        "ENCONTRADO",
-                        "EM_NEGOCIACAO",
-                        "DEVOLVIDO",
-                        "CANCELADO",
-                      ].map((s) => (
-                        <option key={s} value={s}>
-                          {statusLabel(s)}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      disabled={busy}
-                      onClick={() =>
-                        action(
-                          () =>
-                            adminService.status(selected.id, selected.status),
-                          "Status atualizado.",
-                        )
-                      }
-                    >
-                      Salvar status
-                    </button>
-                  </section>
+                </>
                 )}
-              </>
-            )}
 
-            {secao === "correspondencias" && (
-              <>
-                <p className="admin-hint">
-                  <NavLink to="/funcionario/solicitacoes">Abrir solicitações e conversas</NavLink>
-                </p>
-                <p className="admin-hint">
-                  Selecione um objeto encontrado para analisar as sugestões. O
-                  envio ao usuário depende da sua confirmação.
-                </p>
+                {secao === "correspondencias" && (
+                  <>
+                    <p className="admin-hint">
+                      <NavLink to="/funcionario/solicitacoes">
+                        Abrir solicitações e conversas
+                      </NavLink>
+                    </p>
 
-                <ItemTable
-                  items={data?.items}
-                  onSelect={async (item) => {
-                    setSelected(item);
-                    setMatches(null);
-                    setMatchesError("");
-                    setError("");
+                    <p className="admin-hint">
+                      Selecione um objeto encontrado para analisar as sugestões. O
+                      envio ao usuário depende da sua confirmação.
+                    </p>
 
-                    try {
-                      setMatches(await adminService.matches(item.id));
-                    } catch (e) {
-                      setMatchesError(
-                        "Não foi possível carregar as sugestões. Tente novamente em Ver detalhes.",
-                      );
-                      setError(e.message);
-                    }
-                  }}
-                />
+                    <ItemTable
+                      items={data?.items}
+                      onSelect={async (item) => {
+                        setSelected(item);
+                        setMatches(null);
+                        setMatchesError("");
+                        setError("");
+
+                        try {
+                          setMatches(await adminService.matches(item.id));
+                        } catch (e) {
+                          setMatchesError(
+                            "Não foi possível carregar as sugestões."
+                          );
+                          setError(e.message);
+                        }
+                      }}
+                    />
+
 
                 {selected && (
                   <section className="admin-card">

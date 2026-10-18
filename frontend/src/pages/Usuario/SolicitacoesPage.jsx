@@ -63,7 +63,7 @@ export default function SolicitacoesPage() {
 
   function formatarStatus(status) {
     const nomes = {
-      CORRESPONDENCIA: "Possível correspondência — confirme se é seu objeto",
+      CORRESPONDENCIA: "Correspondência enviada — aguardando verificação",
       PENDENTE: "Aguardando análise",
       APROVADA: "Aprovada - aguardando retirada",
       REJEITADA: "Rejeitada",
@@ -175,24 +175,15 @@ export default function SolicitacoesPage() {
                 {Array.isArray(avaliacoes[solicitacao.id]) && avaliacoes[solicitacao.id].map((review) => <p key={review.id}>{review.rating}/5 · {review.comment || "Sem comentário"}</p>)}
               </section>
             )}
-            {solicitacao.status === "CORRESPONDENCIA" && (
-              <button type="button" onClick={async () => {
-                setErro("");
-                try {
-                  await claimService.create(solicitacao.item_id, { proof_description: solicitacao.proof_description });
-                  const resposta = await claimService.myClaims(page);
-                  setSolicitacoes(resposta.items || []);
-                } catch (error) { setErro(error.message); }
-              }}>É meu objeto: solicitar devolução</button>
-            )}
-            {solicitacao.status !== "REJEITADA" && <button
+            {!["REJEITADA", "CANCELADA"].includes(solicitacao.status) && (
+            <button
               type="button"
               onClick={() => abrirConversa(solicitacao)}
             >
               {conversaAberta === solicitacao.id
                 ? "Fechar conversa"
                 : "Conversar com funcionário"}
-            </button>}
+            </button>)}
 
             {conversaAberta === solicitacao.id &&
               contatos[solicitacao.id] && (
