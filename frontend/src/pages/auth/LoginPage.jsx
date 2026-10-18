@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
 import "./LoginPage.css";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const isMounted = useRef(true);
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -14,43 +15,88 @@ function LoginPage() {
 
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
-async function handleSubmit(event) {
-  event.preventDefault();
 
-  setErro("");
+  // Rastreia o ciclo de vida para evitar atualização de estado após desmonte
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
-  if (!email.trim() || !senha.trim()) {
-    setErro("Informe seu e-mail e sua senha.");
-    return;
-  }
+  async function handleSubmit(event) {
+    event.preventDefault();
 
-  try {
-    setCarregando(true);
+    setErro("");
 
-    const { usuario } = await authService.login(
-      email,
-      senha
-    );
+    if (!email.trim() || !senha.trim()) {
+      setErro("Informe seu e-mail e sua senha.");
+      return;
+    }
 
-    console.log("LOGIN REALIZADO COM SUCESSO");
-    console.log("Usuário:", usuario);
-    console.log("Role:", usuario.role);
+    try {
+      setCarregando(true);
 
+<<<<<<< HEAD
     // Login pela área de funcionário
     if (modoFuncionario) {
       if (!["ADMIN", "COLABORADOR"].includes(usuario.role)) {
         authService.logout();
+=======
+      const { usuario } = await authService.login(
+        email.trim(),
+        senha.trim()
+      );
+>>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
 
-        setErro(
-          "Esta conta não possui permissão de funcionário."
-        );
+      if (!isMounted.current) return;
 
+      const role = usuario?.role;
+
+      // Validação de acesso para a Área de Funcionário (ADMIN ou COLABORADOR)
+      if (modoFuncionario) {
+        if (role !== "ADMIN" && role !== "COLABORADOR") {
+          await authService.logout();
+          if (isMounted.current) {
+            setErro("Esta conta não possui permissão de acesso à área operacional.");
+            setCarregando(false);
+          }
+          return;
+        }
+
+        navigate("/funcionario/dashboard", { replace: true });
         return;
       }
 
-      navigate("/funcionario/dashboard");
-      return;
+      // Validação para o Acesso Padrão de Usuário / Redirecionamentos Globais
+      if (role === "USER") {
+        navigate("/usuario/home", { replace: true });
+        return;
+      }
+
+      if (role === "ADMIN" || role === "COLABORADOR") {
+        navigate("/funcionario/dashboard", { replace: true });
+        return;
+      }
+
+      // Perfil não mapeado no sistema
+      await authService.logout();
+      if (isMounted.current) {
+        setErro("Tipo de usuário não reconhecido pelo sistema.");
+        setCarregando(false);
+      }
+
+    } catch (error) {
+      if (isMounted.current) {
+        setErro(
+          error?.response?.data?.detail ||
+          error.message ||
+          "Não foi possível realizar o acesso. Verifique suas credenciais."
+        );
+        setCarregando(false);
+      }
     }
+<<<<<<< HEAD
 
     // Login normal do usuário
     if (usuario.role === "USER") {
@@ -78,15 +124,16 @@ async function handleSubmit(event) {
 
   } finally {
     setCarregando(false);
+=======
+>>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
   }
-}
-function alterarModo() {
-  setModoFuncionario(!modoFuncionario);
 
-  setEmail("");
-  setSenha("");
-  setErro("");
-}
+  function alterarModo() {
+    setModoFuncionario((prev) => !prev);
+    setEmail("");
+    setSenha("");
+    setErro("");
+  }
 
   return (
     <main className="login-page">
@@ -98,70 +145,52 @@ function alterarModo() {
 
           <div>
             <div className="brand-name">
-            <h1>
-              Onde<span>Tá</span>
-            </h1>
-
-            <p>Achados & Perdidos</p>
-          </div>
+              <h1>
+                Onde<span>Tá</span>
+              </h1>
+              <p>Achados & Perdidos</p>
+            </div>
             <p>Sistema de Achados e Perdidos</p>
           </div>
         </div>
 
         <div className="presentation-content">
-          <span className="portal-badge">
-             PORTAL OndeTá
-          </span>
+          <span className="portal-badge">PORTAL OndeTá</span>
 
-          <h2>
-            Um jeito mais seguro de recuperar
-            o que é seu.
-          </h2>
+          <h2>Um jeito mais seguro de recuperar o que é seu.</h2>
 
           <p className="presentation-description">
-            Consulte objetos encontrados, registre itens
-            perdidos e acompanhe todo o processo de
-            devolução em um único lugar.
-            </p>
+            Consulte objetos encontrados, registre itens perdidos e acompanhe
+            todo o processo de devolução em um único lugar.
+          </p>
 
           <div className="presentation-features">
             <div className="presentation-feature">
               <div className="feature-icon">01</div>
-
               <div>
                 <strong>Registre um item perdido</strong>
-
-                <p>
-                  Informe características, local e data
-                  aproximada da perda.
-                </p>
+                <p>Informe características, local e data aproximada da perda.</p>
               </div>
             </div>
 
             <div className="presentation-feature">
               <div className="feature-icon">02</div>
-
               <div>
-                <strong>
-                  Encontre possíveis correspondências
-                </strong>
-
-            <p>
-            O sistema compara objetos perdidos com
-            os itens encontrados cadastrados.
-            </p>
+                <strong>Encontre possíveis correspondências</strong>
+                <p>
+                  O sistema compara objetos perdidos com os itens encontrados
+                  cadastrados.
+                </p>
               </div>
             </div>
 
             <div className="presentation-feature">
               <div className="feature-icon">03</div>
-
               <div>
                 <strong>Retirada com segurança</strong>
-
                 <p>
-                  A propriedade do objeto é validada antes
-                  da confirmação da devolução.
+                  A propriedade do objeto é validada antes da confirmação da
+                  devolução.
                 </p>
               </div>
             </div>
@@ -169,10 +198,9 @@ function alterarModo() {
         </div>
 
         <div className="presentation-footer">
-            <span>
-            Plataforma de gerenciamento de objetos
-            perdidos e encontrados
-            </span>
+          <span>
+            Plataforma de gerenciamento de objetos perdidos e encontrados
+          </span>
         </div>
       </section>
 
@@ -198,7 +226,7 @@ function alterarModo() {
               }
             >
               {modoFuncionario
-                ? "ACESSO DO FUNCIONÁRIO"
+                ? "ACESSO OPERACIONAL / FUNCIONÁRIO"
                 : "ACESSO DO USUÁRIO"}
             </span>
           </div>
@@ -211,7 +239,7 @@ function alterarModo() {
             </h2>
 
             <p>
-                {modoFuncionario
+              {modoFuncionario
                 ? "Entre com suas credenciais para acessar o painel de gerenciamento."
                 : "Acesse sua conta para consultar e acompanhar seus objetos."}
             </p>
@@ -219,19 +247,14 @@ function alterarModo() {
 
           <form onSubmit={handleSubmit}>
             {erro && (
-              <div className="error-message">
+              <div className="error-message" role="alert">
                 <span>!</span>
-
                 <p>{erro}</p>
               </div>
             )}
 
             <div className="form-group">
-              <label htmlFor="email">
-                {modoFuncionario
-                  ? "E-mail"
-                  : "E-mail"}
-              </label>
+              <label htmlFor="email">E-mail</label>
 
               <div className="input-container">
                 <span className="input-icon">@</span>
@@ -241,67 +264,51 @@ function alterarModo() {
                   type="email"
                   placeholder={
                     modoFuncionario
-                      ? "Digite seu e-mail"
+                      ? "Digite seu e-mail corporativo"
                       : "Digite seu e-mail cadastrado"
                   }
                   value={email}
-                  onChange={(event) =>
-                    setEmail(event.target.value)
-                  }
+                  onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
+                  disabled={carregando}
                 />
               </div>
             </div>
 
             <div className="form-group">
               <div className="label-row">
-                <label htmlFor="senha">
-                  Senha
-                </label>
+                <label htmlFor="senha">Senha</label>
 
                 <button
                   type="button"
                   className="forgot-password"
-                  onClick={() =>
-                    navigate("/recuperar-senha")
-                  }
+                  onClick={() => navigate("/recuperar-senha")}
+                  disabled={carregando}
                 >
                   Esqueci minha senha
                 </button>
               </div>
 
               <div className="input-container">
-                <span className="input-icon">
-                  ●
-                </span>
+                <span className="input-icon">●</span>
 
                 <input
                   id="senha"
-                  type={
-                    mostrarSenha
-                      ? "text"
-                      : "password"
-                  }
+                  type={mostrarSenha ? "text" : "password"}
                   placeholder="Digite sua senha"
                   value={senha}
-                  onChange={(event) =>
-                    setSenha(event.target.value)
-                  }
+                  onChange={(event) => setSenha(event.target.value)}
                   autoComplete="current-password"
+                  disabled={carregando}
                 />
 
                 <button
                   type="button"
                   className="password-toggle"
-                  onClick={() =>
-                    setMostrarSenha(
-                      !mostrarSenha
-                    )
-                  }
+                  onClick={() => setMostrarSenha((prev) => !prev)}
+                  disabled={carregando}
                 >
-                  {mostrarSenha
-                    ? "Ocultar"
-                    : "Mostrar"}
+                  {mostrarSenha ? "Ocultar" : "Mostrar"}
                 </button>
               </div>
             </div>
@@ -311,25 +318,24 @@ function alterarModo() {
               type="submit"
               disabled={carregando}
             >
-              {carregando
-                ? "Validando acesso..."
-                : modoFuncionario
-                ? "Entrar no painel"
-                : "Entrar"}
+              {carregando ? (
+                <span>Validando acesso...</span>
+              ) : modoFuncionario ? (
+                <span>Entrar no painel</span>
+              ) : (
+                <span>Entrar</span>
+              )}
             </button>
           </form>
 
           {!modoFuncionario && (
             <div className="register-area">
-              <span>
-                Primeiro acesso?
-              </span>
+              <span>Primeiro acesso?</span>
 
               <button
                 type="button"
-                onClick={() =>
-                  navigate("/cadastro")
-                }
+                onClick={() => navigate("/cadastro")}
+                disabled={carregando}
               >
                 Criar minha conta
               </button>
@@ -337,9 +343,9 @@ function alterarModo() {
           )}
 
           <div className="separator">
-            <span></span>
+            <span />
             <p>ou</p>
-            <span></span>
+            <span />
           </div>
 
           <button
@@ -350,6 +356,7 @@ function alterarModo() {
                 : "employee-button"
             }
             onClick={alterarModo}
+            disabled={carregando}
           >
             <div className="employee-button-icon">
               {modoFuncionario ? "←" : "ID"}
@@ -358,7 +365,7 @@ function alterarModo() {
             <div className="employee-button-text">
               <strong>
                 {modoFuncionario
-                 ? "Voltar para acesso do usuário"
+                  ? "Voltar para acesso do usuário"
                   : "Sou funcionário"}
               </strong>
 
@@ -369,17 +376,13 @@ function alterarModo() {
               </span>
             </div>
 
-            <span className="employee-arrow">
-              →
-            </span>
+            <span className="employee-arrow">→</span>
           </button>
 
           <div className="security-message">
             <span>●</span>
-
             <p>
-              Ambiente protegido. Não compartilhe
-              suas credenciais de acesso.
+              Ambiente protegido. Não compartilhe suas credenciais de acesso.
             </p>
           </div>
         </div>
