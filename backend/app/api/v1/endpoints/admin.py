@@ -10,27 +10,25 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_current_admin, get_db
+from app.api.deps import get_current_admin, get_current_staff, get_db
 from app.models.category import Category
 from app.models.claim import Claim
-from app.models.enums import ItemStatus, ItemType, NotificationType
+from app.models.enums import ItemStatus, ItemType, NotificationType, ClaimStatus, UserRole
 from app.models.item import Item
 from app.models.notification import Notification
-from app.models.report import Report
 from app.models.status_history import StatusHistory
 from app.models.user import User
 from app.schemas.admin import CategoryCreate, CategoryUpdate
 from app.schemas.claim import ClaimDetailResponse
 from app.schemas.item import ItemListResponse, ItemResponse
-from app.schemas.report import ReportResponse, ReportDetailResponse
-from app.services.moderation_service import decide_report, remove_publication
+from app.services.moderation_service import remove_publication
 from app.services.matching_service import matching_service
 
 
 router = APIRouter(
     prefix="/admin",
     tags=["admin"],
-    dependencies=[Depends(get_current_admin)],
+    dependencies=[Depends(get_current_staff)],
 )
 
 
@@ -127,7 +125,7 @@ async def stats(
         "total_users": await count(User),
         "blocked_users": await count(User, User.is_active.is_(False)),
         "removed_items": await count(Item, Item.status == ItemStatus.CANCELADO),
-        "resolved_reports": await count(Report, Report.is_resolved.is_(True)),
+        
         "total_active_items": active,
         "total_returned_items": returned,
         "return_success_rate": round(
@@ -150,10 +148,7 @@ async def stats(
             }
             for name, n in locations
         ],
-        "pending_reports": await count(
-            Report,
-            Report.is_resolved.is_(False),
-        ),
+
     }
 
 
@@ -171,9 +166,12 @@ async def items(
     item_type: ItemType | None = None,
     status_filter: ItemStatus | None = None,
     search: str | None = None,
+    origin: Literal["user", "internal", "all"] = "all",
     db: AsyncSession = Depends(get_db),
 ):
     filters = []
+    if origin != "all":
+        filters.append(Item.internal_origin.is_(origin == "internal"))
 
     if status_filter:
         filters.append(Item.status == status_filter)
@@ -253,7 +251,7 @@ async def change_status(
     item_id: UUID,
     body: ItemStatusInput,
     db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_staff),
 ):
     item = await get_item_or_404(
         db,
@@ -312,8 +310,10 @@ async def matches(
 async def send_match(
     item_id: UUID,
     lost_item_id: UUID,
+    staff: User = Depends(get_current_staff),
     db: AsyncSession = Depends(get_db),
 ):
+    await db.execute(select(Item.id).where(Item.id == item_id).with_for_update())
     found = await get_item_or_404(db, item_id)
     lost = await get_item_or_404(db, lost_item_id)
 
@@ -352,7 +352,7 @@ async def send_match(
     existing = await db.scalar(
         select(Notification.id).where(
             Notification.user_id == lost.user_id,
-            Notification.item_id == lost.id,
+            Notification.item_id == found.id,
             Notification.type == NotificationType.MATCH_FOUND,
             Notification.message == message,
         )
@@ -364,11 +364,23 @@ async def send_match(
             "Correspondência já encaminhada",
         )
 
+    if found.user_id == lost.user_id:
+        raise HTTPException(400, "Não é possível encaminhar correspondência para o próprio objeto")
+    claim = await db.scalar(select(Claim).where(
+        Claim.item_id == found.id, Claim.requester_id == lost.user_id,
+        Claim.status.in_((ClaimStatus.CORRESPONDENCIA, ClaimStatus.PENDENTE, ClaimStatus.APROVADA))))
+    if claim is None:
+        db.add(Claim(item_id=found.id, requester_id=lost.user_id,
+            responsible_id=staff.id, status=ClaimStatus.CORRESPONDENCIA,
+            proof_description=f"Possível correspondência com {lost.title}"))
+    elif claim.responsible_id is None:
+        claim.responsible_id = staff.id
+
     # Notifica o proprietário do objeto perdido.
     db.add(
         Notification(
             user_id=lost.user_id,
-            item_id=lost.id,
+            item_id=found.id,
             title="Possível correspondência",
             message=message,
             type=NotificationType.MATCH_FOUND,
@@ -404,7 +416,7 @@ async def claims(
         select(Claim)
         .options(
             selectinload(Claim.requester),
-            selectinload(Claim.item),
+            selectinload(Claim.item).selectinload(Item.images),
         )
         .order_by(Claim.created_at.desc())
         .offset(
@@ -668,11 +680,6 @@ async def delete_category(
     await db.commit()
 
 
-class ReportDecisionInput(BaseModel):
-    action: Literal["ARQUIVAR", "REMOVER_PUBLICACAO", "BLOQUEAR_USUARIO"]
-    notes: str = Field(..., min_length=10, max_length=500)
-    model_config = ConfigDict(str_strip_whitespace=True)
-
 class RemovalInput(BaseModel):
     reason: str = Field(..., min_length=10, max_length=255)
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -687,31 +694,25 @@ async def user_detail(user_id: UUID, db: AsyncSession = Depends(get_db)):
         "total_items": await db.scalar(select(func.count()).select_from(Item).where(Item.user_id == user.id))}
 
 @router.post("/items/{item_id}/remove", response_model=ItemResponse)
-async def remove_item(item_id: UUID, body: RemovalInput, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+async def remove_item(item_id: UUID, body: RemovalInput, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_staff)):
     await remove_publication(db, item_id, admin, body.reason)
     await db.commit()
     return ItemResponse.model_validate(await get_item_or_404(db, item_id))
 
-@router.get("/reports")
-async def reports(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), resolved: bool | None = None, search: str = "", db: AsyncSession = Depends(get_db)):
-    filters = [Report.reason.ilike(f"%{search}%")]
-    if resolved is not None:
-        filters.append(Report.is_resolved == resolved)
-    total = await db.scalar(select(func.count()).select_from(Report).where(*filters))
-    result = await db.scalars(select(Report).options(selectinload(Report.reporter), selectinload(Report.reported_user), selectinload(Report.reported_item)).where(*filters).order_by(Report.created_at.desc()).offset((page-1)*page_size).limit(page_size))
-    return {"total": total, "page": page, "page_size": page_size, "items": [ReportDetailResponse.model_validate(x) for x in result.all()]}
 
-@router.get("/reports/{report_id}", response_model=ReportDetailResponse)
-async def report_detail(report_id: UUID, db: AsyncSession = Depends(get_db)):
-    report = await db.scalar(select(Report).where(Report.id == report_id).options(selectinload(Report.reporter), selectinload(Report.reported_user), selectinload(Report.reported_item)))
-    if not report:
-        raise HTTPException(404, "Denúncia não encontrada")
-    return ReportDetailResponse.model_validate(report)
 
-@router.patch("/reports/{report_id}/decision", response_model=ReportResponse)
-async def report_decision(report_id: UUID, body: ReportDecisionInput, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
-    return ReportResponse.model_validate(await decide_report(db, report_id, admin, body.action, body.notes))
+from app.schemas.user import UserCreate, UserResponse
+from app.core.security import hash_password
 
-@router.patch("/reports/{report_id}/resolve", response_model=ReportResponse)
-async def resolve_report(report_id: UUID, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
-    return ReportResponse.model_validate(await decide_report(db, report_id, admin, "ARQUIVAR", "Concluída pelo administrador sem sanção."))
+@router.post("/staff", response_model=UserResponse, status_code=201)
+async def create_staff(body: UserCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+    user = User(name=body.name.strip(), email=str(body.email).lower(), phone=body.phone,
+                password_hash=hash_password(body.password), role=UserRole.COLABORADOR)
+    db.add(user)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, "E-mail já cadastrado")
+    await db.refresh(user)
+    return user

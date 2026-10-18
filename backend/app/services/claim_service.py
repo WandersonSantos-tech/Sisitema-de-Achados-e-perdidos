@@ -46,6 +46,7 @@ class ClaimService:
         result = await db.execute(
             select(Item)
             .where(Item.id == item_id)
+            .with_for_update()
             .options(selectinload(Item.user))
         )
         item = result.scalar_one_or_none()
@@ -71,11 +72,17 @@ class ClaimService:
                 and_(
                     Claim.item_id == item_id,
                     Claim.requester_id == requester.id,
-                    Claim.status == ClaimStatus.PENDENTE,
+                    Claim.status.in_((ClaimStatus.CORRESPONDENCIA, ClaimStatus.PENDENTE, ClaimStatus.APROVADA)),
                 )
             )
         )
         existing_pending = result.scalar_one_or_none()
+
+        if existing_pending and existing_pending.status == ClaimStatus.CORRESPONDENCIA:
+            existing_pending.status = ClaimStatus.PENDENTE
+            existing_pending.proof_description = claim_in.proof_description
+            await db.flush()
+            return existing_pending
 
         if existing_pending:
             raise ValueError(
@@ -125,6 +132,7 @@ class ClaimService:
             .where(Claim.id == claim_id)
             .options(
                 selectinload(Claim.item).selectinload(Item.user),
+                selectinload(Claim.item).selectinload(Item.images),
                 selectinload(Claim.requester),
             )
         )
@@ -133,8 +141,12 @@ class ClaimService:
         if not claim:
             raise ValueError(f"Reivindicação {claim_id} não encontrada")
 
+        await db.execute(select(Item.id).where(Item.id == claim.item_id).with_for_update())
+        await db.refresh(claim.item)
+        await db.refresh(claim.item, attribute_names=["images"])
+        await db.refresh(claim, attribute_names=["status"])
         # Validar permissões: apenas owner do item ou admin
-        if current_user.id != claim.item.user_id and current_user.role != UserRole.ADMIN:
+        if current_user.id != claim.item.user_id and current_user.role not in (UserRole.ADMIN, UserRole.COLABORADOR):
             raise PermissionError(
                 "Apenas o proprietário do item ou administradores podem atualizar reivindicações"
             )
@@ -142,7 +154,19 @@ class ClaimService:
         if status_in.status == ClaimStatus.APROVADA and claim.item.status in (ItemStatus.CANCELADO, ItemStatus.DEVOLVIDO):
             raise ModeratedItemError("Não é possível aprovar uma solicitação de publicação removida ou item devolvido")
 
+        if status_in.status == ClaimStatus.APROVADA:
+            approved = await db.scalar(select(Claim.id).where(
+                Claim.item_id == claim.item_id, Claim.id != claim.id,
+                Claim.status == ClaimStatus.APROVADA).limit(1))
+            if approved:
+                raise ValueError("Já existe uma solicitação aprovada para este objeto")
         # Atualizar status da reivindicação
+        if status_in.status not in (ClaimStatus.APROVADA, ClaimStatus.REJEITADA):
+            raise ValueError("Escolha aprovar ou rejeitar a solicitação")
+        if claim.status != ClaimStatus.PENDENTE:
+            raise ValueError("Somente solicitações pendentes podem ser analisadas")
+        if current_user.role in (UserRole.ADMIN, UserRole.COLABORADOR):
+            claim.responsible_id = current_user.id
         claim.status = status_in.status
 
         if status_in.status == ClaimStatus.APROVADA:
@@ -194,7 +218,7 @@ class ClaimService:
             select(Claim)
             .where(Claim.id == claim_id)
             .options(
-                selectinload(Claim.item),
+                selectinload(Claim.item).selectinload(Item.images),
                 selectinload(Claim.requester),
             )
         )
@@ -220,7 +244,7 @@ class ClaimService:
             .where(Claim.item_id == item_id)
             .options(
                 selectinload(Claim.requester),
-                selectinload(Claim.item),
+                selectinload(Claim.item).selectinload(Item.images),
             )
             .order_by(Claim.created_at.desc())
             .offset((page - 1) * page_size)
@@ -250,7 +274,7 @@ class ClaimService:
             .where(Claim.requester_id == user_id)
             .options(
                 selectinload(Claim.requester),
-                selectinload(Claim.item),
+                selectinload(Claim.item).selectinload(Item.images),
             )
             .order_by(Claim.created_at.desc())
             .offset((page - 1) * page_size)

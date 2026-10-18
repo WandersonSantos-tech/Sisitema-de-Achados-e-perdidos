@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ItemStatus
@@ -161,7 +162,7 @@ async def get_user_reviews(
     """
     # Buscar todas as reviews recebidas por este usuário
     result = await db.execute(
-        select(Review)
+        select(Review).options(selectinload(Review.reviewer))
         .where(Review.reviewed_user_id == user_id)
         .order_by(Review.created_at.desc())
     )

@@ -22,6 +22,35 @@ class MessageService:
     """Serviço de negócio para operações de mensagens com validação de acesso"""
 
     @staticmethod
+    async def validate_participants(db, item, first_id, second_id):
+        from app.models.enums import ClaimStatus
+        from app.models.status_history import StatusHistory
+        if first_id == second_id:
+            raise PermissionError("Selecione outra pessoa para conversar")
+        people = (await db.scalars(select(User).where(User.id.in_((first_id, second_id))))).all()
+        if len(people) != 2 or any(not person.is_active for person in people):
+            raise PermissionError("Participante indisponível")
+        claims = (await db.scalars(select(Claim).where(
+            Claim.item_id == item.id,
+            Claim.requester_id.in_((first_id, second_id)),
+            Claim.status.in_((ClaimStatus.CORRESPONDENCIA, ClaimStatus.PENDENTE, ClaimStatus.APROVADA))
+        ))).all()
+        staff_roles = (UserRole.ADMIN, UserRole.COLABORADOR)
+        for claim in claims:
+            other_id = second_id if claim.requester_id == first_id else first_id
+            other = next(person for person in people if person.id == other_id)
+            if other_id == item.user_id or claim.responsible_id == other_id:
+                return
+            if other.role in staff_roles:
+                historical = await db.scalar(select(StatusHistory.changed_by).where(
+                    StatusHistory.item_id == item.id,
+                    StatusHistory.note == f"Reivindicação #{claim.id} aprovada"
+                ).order_by(StatusHistory.created_at.desc()).limit(1))
+                if historical == other_id or (claim.responsible_id is None and historical is None):
+                    return
+        raise PermissionError("Os participantes não possuem uma solicitação ativa em comum")
+
+    @staticmethod
     async def send_message(
         db: AsyncSession,
         item_id: uuid.UUID,
@@ -52,68 +81,7 @@ class MessageService:
         if not item:
             raise ValueError(f"Item {item_id} não encontrado")
 
-        # Validar que remetente é dono do item OU possui reivindicação aprovada/pendente
-        has_claim = False
-        if sender.id != item.user_id:
-            # Verificar se tem reivindicação para este item
-            claim_result = await db.execute(
-                select(Claim).where(
-                    and_(
-                        Claim.item_id == item_id,
-                        Claim.requester_id == sender.id,
-                    )
-                )
-            )
-            has_claim = claim_result.scalar_one_or_none() is not None
-
-            if sender.id != item.user_id and not has_claim:
-                if sender.role == UserRole.ADMIN:
-                    result = await db.execute(
-                        select(Claim.id).where(
-                            Claim.item_id == item_id,
-                            Claim.requester_id == msg_in.receiver_id,
-                        )
-                    )
-                    has_claim = result.scalar_one_or_none() is not None
-
-                if not has_claim:
-                    raise PermissionError(
-                        "Você não possui autorização para enviar mensagens sobre este item"
-                    )
-
-        # Validar que receiver_id existe e é um usuário válido
-        receiver_result = await db.execute(
-            select(User).where(User.id == msg_in.receiver_id)
-        )
-        receiver = receiver_result.scalar_one_or_none()
-
-        if not receiver:
-            raise ValueError(f"Usuário {msg_in.receiver_id} não encontrado")
-
-        # Validar que o destinatário está envolvido com o item
-        # (é o dono OU possui reivindicação)
-        receiver_involved = False
-        if receiver.id == item.user_id:
-            receiver_involved = True
-        else:
-            receiver_claim = await db.execute(
-                select(Claim).where(
-                    and_(
-                        Claim.item_id == item_id,
-                        Claim.requester_id == receiver.id,
-                    )
-                )
-            )
-            receiver_involved = receiver_claim.scalar_one_or_none() is not None
-
-            if not receiver_involved:
-                if receiver.role == UserRole.ADMIN and has_claim:
-                    receiver_involved = True
-
-                if not receiver_involved:
-                    raise PermissionError(
-                        "O destinatário não está envolvido com este item"
-                    )
+        await MessageService.validate_participants(db, item, sender.id, msg_in.receiver_id)
 
         # Criar mensagem
         message = Message(
@@ -160,63 +128,7 @@ class MessageService:
         if not item:
             raise ValueError(f"Item {item_id} não encontrado")
 
-        current_user_involved = False
-        if current_user.id == item.user_id:
-            current_user_involved = True
-        else:
-            claim_result = await db.execute(
-                select(Claim).where(
-                    and_(
-                        Claim.item_id == item_id,
-                        Claim.requester_id == current_user.id,
-                    )
-                )
-            )
-            current_user_involved = claim_result.scalar_one_or_none() is not None
-            
-            if not current_user_involved:
-                if current_user.role == UserRole.ADMIN:
-                    result = await db.execute(
-                        select(Claim.id).where(
-                            Claim.item_id == item_id,
-                            Claim.requester_id == other_user_id,
-                        )
-                    )
-                    current_user_involved = result.scalar_one_or_none() is not None
-
-                if not current_user_involved:
-                    raise PermissionError(
-                        "Você não está envolvido com este item e não pode consultar conversas"
-                    )
-
-        # Validar que other_user está envolvido com item
-        other_user_involved = False
-        if other_user_id == item.user_id:
-            other_user_involved = True
-        else:
-            other_claim_result = await db.execute(
-                select(Claim).where(
-                    and_(
-                        Claim.item_id == item_id,
-                        Claim.requester_id == other_user_id,
-                    )
-                )
-            )
-            other_user_involved = other_claim_result.scalar_one_or_none() is not None
-
-            if not other_user_involved:
-                other_result = await db.execute(
-                    select(User).where(User.id == other_user_id)
-                )
-                other_user = other_result.scalar_one_or_none()
-
-                if other_user and other_user.role == UserRole.ADMIN:
-                    other_user_involved = current_user_involved
-
-                if not other_user_involved:
-                    raise PermissionError(
-                        "O outro usuário não está envolvido com este item"
-                    )
+        await MessageService.validate_participants(db, item, current_user.id, other_user_id)
 
         # Recuperar histórico ordenado cronologicamente
         result = await db.execute(

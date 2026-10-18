@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { authService } from "../../services/authService";
-import "./DenunciasPage.css";
+import "./UsuarioSupportPage.css";
+import { reviewService } from "../../services/reviewService";
 
 export default function UsuarioSupportPage() {
   const profile = useLocation().pathname.endsWith("/perfil");
+  const [reviews, setReviews] = useState(null);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -22,9 +24,9 @@ export default function UsuarioSupportPage() {
     };
   }, []);
   return (
-    <div className="reports-page">
+    <div className="support-page">
       <header>
-        <Link className="reports-brand" to="/usuario/home">
+        <Link className="support-brand" to="/usuario/home">
           Onde<span>Tá</span>
         </Link>
         <Link to="/usuario/home">← Voltar ao início</Link>
@@ -37,13 +39,18 @@ export default function UsuarioSupportPage() {
           </p>
         )}
         {profile ? (
-          <section className="reports-card">
+          <section className="support-card">
             {user ? (
               <>
                 <h2>{user.name}</h2>
                 <p>E-mail: {user.email}</p>
                 <p>Telefone: {user.phone || "Não informado"}</p>
                 <p>Situação: {user.is_active ? "Ativo" : "Bloqueado"}</p>
+                <button onClick={async () => {
+                  try { setReviews(await reviewService.listByUser(user.id)); }
+                  catch (error) { setError(error.message); }
+                }}>Minhas avaliações recebidas</button>
+                {reviews && <p>{reviews.total_reviews} avaliações · Média: {reviews.average_rating ?? "Sem notas"}</p>}
                 <Link to="/recuperar-senha">Recuperar senha</Link>
               </>
             ) : (
@@ -51,7 +58,7 @@ export default function UsuarioSupportPage() {
             )}
           </section>
         ) : (
-          <section className="reports-card">
+          <section className="support-card">
             <h2>Como usar o OndeTá</h2>
             <p>
               Registre o objeto perdido e acompanhe seus itens. A equipe pode
@@ -65,13 +72,6 @@ export default function UsuarioSupportPage() {
             <p>
               <Link to="/usuario/solicitacoes">Acompanhar solicitações</Link>
             </p>
-            <h2>Publicação ou comportamento inadequado</h2>
-            <p>
-              Abra Denúncias, selecione Nova denúncia, escolha a publicação ou
-              seu autor e descreva o motivo. Confirme o envio. A equipe analisa
-              e o parecer fica em Minhas denúncias.
-            </p>
-            <Link to="/usuario/denuncias">Abrir denúncias</Link>
           </section>
         )}
         <footer>

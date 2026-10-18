@@ -93,7 +93,5 @@ class AdminStatsResponse(BaseModel):
         ..., description="Top 5 categorias")
     top_locations: list[LocationStatsItem] = Field(
         ..., description="Top 5 locais")
-    pending_reports: int = Field(...,
-                                 description="Denúncias pendentes de análise")
 
     model_config = ConfigDict(from_attributes=True)

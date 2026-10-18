@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.api.deps import get_current_admin, get_current_user, get_db
+from app.api.deps import get_current_staff, get_current_user, get_db
 from app.models.item import Item
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
@@ -43,6 +43,7 @@ async def create_lost_item(
     # Cria o item
     new_item = Item(
         user_id=current_user.id,
+        internal_origin=current_user.role.value in ("ADMIN", "COLABORADOR"),
         category_id=item_in.category_id,
         type=ItemType.PERDIDO,
         title=item_in.title,
@@ -75,7 +76,7 @@ async def create_lost_item(
 async def create_found_item(
     item_in: ItemCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Cria um novo item encontrado.
@@ -92,6 +93,7 @@ async def create_found_item(
     # Cria o item
     new_item = Item(
         user_id=current_user.id,
+        internal_origin=current_user.role.value in ("ADMIN", "COLABORADOR"),
         category_id=item_in.category_id,
         type=ItemType.ENCONTRADO,
         title=item_in.title,

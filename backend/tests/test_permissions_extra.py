@@ -25,7 +25,6 @@ class TestAdminAuthorization:
         admin_endpoints = [
             "/api/v1/admin/stats",
             "/api/v1/admin/users",
-            "/api/v1/admin/reports",
             "/api/v1/admin/categories",
         ]
 
@@ -252,24 +251,3 @@ class TestAdminCRUDPermissions:
         assert response.status_code in [400, 403]
 
 
-class TestReportSubmissionPermissions:
-    """Testes de permissões para submissão de denúncias."""
-
-    async def test_user_cannot_report_self(
-        self,
-        async_client: AsyncClient,
-        user_token_headers,
-        test_user,
-    ):
-        """Teste: Usuário não pode denunciar a si próprio."""
-        response = await async_client.post(
-            "/api/v1/reports",
-            headers=user_token_headers,
-            json={
-                "reason": "Denúncia contra meu usuário",
-                "reported_user_id": str(test_user.id),
-            }
-        )
-
-        assert response.status_code == 400
-        assert "não pode denunciar a si" in response.json()["detail"].lower()

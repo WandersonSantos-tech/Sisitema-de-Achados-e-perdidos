@@ -10,7 +10,6 @@ from sqlalchemy.orm import selectinload
 
 from app.models.category import Category
 from app.models.item import Item
-from app.models.report import Report
 from app.models.user import User
 from app.models.enums import ItemStatus, UserRole
 from app.schemas.admin import AdminStatsResponse, CategoryStatsItem, LocationStatsItem
@@ -31,7 +30,6 @@ async def get_system_statistics(
     - Taxa de sucesso de devoluções
     - Top 5 categorias com mais ocorrências
     - Top 5 locais com mais registros
-    - Total de denúncias pendentes
 
     Args:
         db: Sessão de banco de dados
@@ -96,11 +94,6 @@ async def get_system_statistics(
         for name, count in locations_result
     ]
 
-    # Denúncias pendentes
-    pending_reports = await db.scalar(
-        select(func.count(Report.id)).where(Report.is_resolved == False)
-    ) or 0
-
     return AdminStatsResponse(
         total_users=total_users,
         total_active_items=active_items,
@@ -108,7 +101,6 @@ async def get_system_statistics(
         return_success_rate=round(return_success_rate, 1),
         top_categories=top_categories,
         top_locations=top_locations,
-        pending_reports=pending_reports,
     )
 
 

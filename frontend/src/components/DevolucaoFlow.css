@@ -1,0 +1,528 @@
+
+.devolucao-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 32, 59, 0.58);
+}
+
+.devolucao-modal {
+  width: 100%;
+  max-width: 650px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: 20px;
+  background: #fff;
+  color: #172b4d;
+  box-shadow: 0 25px 70px rgba(10, 30, 60, 0.2);
+}
+
+.devolucao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 30px 22px;
+  border-bottom: 1px solid #e8edf5;
+}
+
+.devolucao-etiqueta {
+  color: #285ca3;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.devolucao-topo h2 {
+  margin: 9px 0;
+  font-size: 24px;
+  color: #142d50;
+}
+
+.devolucao-topo p {
+  margin: 0;
+  color: #8190a5;
+  font-size: 13px;
+}
+
+.devolucao-modal .devolucao-fechar {
+  border: 0;
+  background: #eef3fa;
+  color: #526784;
+  border-radius: 10px;
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.devolucao-etapas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px 15px;
+}
+
+.devolucao-etapa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #8795a8;
+  font-weight: 650;
+}
+
+.devolucao-etapa span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #edf2f8;
+}
+
+.devolucao-etapa.ativa {
+  color: #285ca3;
+}
+
+.devolucao-etapa.ativa span {
+  background: #285ca3;
+  color: #fff;
+}
+
+.devolucao-linha {
+  width: 45px;
+  height: 1px;
+  background: #d9e3f0;
+}
+
+.devolucao-conteudo {
+  padding: 0 30px 30px;
+}
+
+.devolucao-info {
+  padding: 20px;
+  border: 1px solid #e2eaf5;
+  border-radius: 14px;
+  background: #f8faff;
+}
+
+.devolucao-info h3 {
+  margin: 0 0 17px;
+  font-size: 16px;
+  color: #172b4d;
+}
+
+.devolucao-info p {
+  font-size: 13px;
+  color: #73849c;
+  line-height: 1.5;
+}
+
+.devolucao-campo {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e4eaf3;
+  font-size: 13px;
+}
+
+.devolucao-campo:last-child {
+  border-bottom: 0;
+}
+
+.devolucao-campo span {
+  color: #8391a5;
+}
+
+.devolucao-campo strong {
+  text-align: right;
+  color: #203d64;
+}
+
+.devolucao-aviso {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #edf4ff;
+  color: #42648e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.devolucao-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 22px;
+  color: #344b69;
+  font-size: 13px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.devolucao-checkbox input {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: #285ca3;
+}
+
+.devolucao-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.devolucao-modal .devolucao-primario,
+.devolucao-modal .devolucao-secundario {
+  border: 0;
+  padding: 12px 17px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.devolucao-modal .devolucao-primario {
+  background: #285ca3;
+  color: white;
+}
+
+.devolucao-modal .devolucao-primario:hover {
+  background: #204b86;
+}
+
+.devolucao-modal .devolucao-primario:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.devolucao-modal .devolucao-secundario {
+  background: #edf3fa;
+  color: #285ca3;
+}
+
+.devolucao-assinatura {
+  position: relative;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px dashed #b6c9e1;
+  border-radius: 14px;
+  background: white;
+}
+
+.devolucao-assinatura canvas {
+  display: block;
+  width: 100%;
+  height: 210px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.devolucao-linha-assinatura {
+  display: block;
+  margin: 0 18px 8px;
+  padding-top: 8px;
+  border-top: 1px solid #cbd6e5;
+  text-align: center;
+  font-size: 11px;
+  color: #9aa8b9;
+}
+
+.devolucao-assinatura-opcoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.devolucao-assinatura-opcoes small {
+  color: #8190a5;
+}
+
+.devolucao-modal .devolucao-limpar {
+  border: 0;
+  background: transparent;
+  color: #285ca3;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.devolucao-sucesso {
+  padding: 35px 15px;
+  text-align: center;
+}
+
+.devolucao-sucesso-icone {
+  display: grid;
+  place-items: center;
+  width: 65px;
+  height: 65px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: #e8f6ef;
+  color: #178455;
+  font-size: 30px;
+}
+
+.devolucao-sucesso h3 {
+  color: #172b4d;
+}
+
+.devolucao-sucesso p {
+  color: #8190a5;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .devolucao-overlay {
+    padding: 10px;
+  }
+
+  .devolucao-modal {
+    max-height: 95dvh;
+    border-radius: 14px;
+  }
+
+  .devolucao-topo {
+    padding: 20px 18px;
+  }
+
+  .devolucao-topo h2 {
+    font-size: 20px;
+  }
+
+  .devolucao-conteudo {
+    padding: 0 18px 22px;
+  }
+
+  .devolucao-campo {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .devolucao-campo strong {
+    text-align: left;
+  }
+
+  .devolucao-acoes {
+    flex-direction: column-reverse;
+  }
+
+  .devolucao-modal .devolucao-acoes button {
+    width: 100%;
+  }
+
+  .devolucao-assinatura canvas {
+    height: 170px;
+  }
+}
+
+/* Correções de layout da janela de devolução */
+
+.devolucao-overlay,
+.devolucao-overlay * {
+  box-sizing: border-box;
+}
+
+.devolucao-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  z-index: 9999;
+}
+
+.devolucao-modal {
+  display: block;
+  flex: 0 1 650px;
+  width: 100%;
+  min-width: 0;
+  max-width: 650px;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.devolucao-modal .devolucao-topo {
+  width: 100%;
+  padding: 26px 28px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.devolucao-topo > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.devolucao-topo h2 {
+  font-size: 22px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.devolucao-topo p {
+  line-height: 1.5;
+}
+
+.devolucao-modal .devolucao-etapas {
+  width: 100%;
+  padding: 22px 16px;
+  flex-wrap: wrap;
+}
+
+.devolucao-modal .devolucao-conteudo {
+  width: 100%;
+  min-width: 0;
+  padding: 0 28px 28px;
+}
+
+.devolucao-modal .devolucao-info {
+  width: 100%;
+  min-width: 0;
+  padding: 20px;
+}
+
+.devolucao-modal .devolucao-campo {
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.devolucao-campo strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.devolucao-modal .devolucao-aviso {
+  width: 100%;
+}
+
+.devolucao-modal .devolucao-conteudo > label:not(.devolucao-checkbox) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #203d64;
+}
+
+.devolucao-modal input[type="datetime-local"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #d4e0ef;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #172b4d;
+  font-size: 14px;
+}
+
+.devolucao-modal .devolucao-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 12px;
+  margin-top: 22px;
+  cursor: pointer;
+}
+
+.devolucao-modal .devolucao-checkbox input {
+  display: block;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  flex: 0 0 18px;
+  margin: 2px 0 0;
+}
+
+.devolucao-modal .devolucao-checkbox span {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.devolucao-modal .devolucao-acoes {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.devolucao-modal .devolucao-assinatura {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .devolucao-overlay {
+    padding: 10px;
+  }
+
+  .devolucao-modal {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .devolucao-modal .devolucao-topo {
+    padding: 20px 18px;
+  }
+
+  .devolucao-modal .devolucao-conteudo {
+    padding: 0 18px 22px;
+  }
+
+  .devolucao-modal .devolucao-campo {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .devolucao-modal .devolucao-campo strong {
+    text-align: left;
+  }
+
+  .devolucao-modal .devolucao-acoes {
+    flex-direction: column-reverse;
+  }
+
+  .devolucao-modal .devolucao-acoes button {
+    width: 100%;
+  }
+}

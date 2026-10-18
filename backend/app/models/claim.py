@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -37,6 +38,10 @@ class Claim(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
+    responsible_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    pickup_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    returned_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    signature: Mapped[str | None] = mapped_column(Text, nullable=True)
     proof_description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[ClaimStatus] = mapped_column(
         sa.Enum(ClaimStatus, name="claim_status", native_enum=True,
@@ -45,5 +50,5 @@ class Claim(Base, TimestampMixin):
         nullable=False,
     )
 
-    item: Mapped[Item] = relationship(back_populates="claims")
-    requester: Mapped[User] = relationship(back_populates="claims")
+    item: Mapped[Item] = relationship(back_populates="claims", foreign_keys=[item_id])
+    requester: Mapped[User] = relationship(back_populates="claims", foreign_keys=[requester_id])

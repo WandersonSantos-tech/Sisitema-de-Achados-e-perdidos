@@ -74,7 +74,9 @@ function NotificacoesPage() {
         );
       }
 
-      if (notificacao.item_id) {
+      if (["MATCH_FOUND", "CLAIM_UPDATED", "CLAIM_RECEIVED", "NEW_MESSAGE"].includes(notificacao.type)) {
+        navigate("/usuario/solicitacoes");
+      } else if (notificacao.item_id) {
         navigate(
           `/usuario/meus-itens/${notificacao.item_id}`
         );
@@ -177,6 +179,7 @@ function NotificacoesPage() {
         </button>
       </header>
 
+      <p><a href="/usuario/solicitacoes">Ver correspondências, solicitações e mensagens</a></p>
       <main className="notificacoes-main">
         <section className="notificacoes-heading">
           <span>

@@ -12,7 +12,6 @@ from app.models.item import Item
 from app.models.item_image import ItemImage
 from app.models.message import Message
 from app.models.notification import Notification
-from app.models.report import Report
 from app.models.review import Review
 from app.models.status_history import StatusHistory
 from app.models.user import User
@@ -30,7 +29,6 @@ __all__ = [
     "Message",
     "Notification",
     "NotificationType",
-    "Report",
     "Review",
     "StatusHistory",
     "User",

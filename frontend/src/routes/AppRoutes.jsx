@@ -16,7 +16,6 @@ import { authService } from "../services/authService";
 import AdminPage from "../pages/funcionario/AdminPage/AdminPage";
 
 import UsuarioSupportPage from "../pages/Usuario/UsuarioSupportPage";
-import DenunciasPage from "../pages/Usuario/DenunciasPage";
 
 function LegacyPrototypeRoute() {
   const { secao = "usuarios" } = useParams();
@@ -71,7 +70,6 @@ function AdminGuard() {
       "solicitacoes",
       "usuarios",
       "categorias",
-      "denuncias",
     ].includes(secao)
   ) {
     return <Navigate to="/funcionario/dashboard" replace />;
@@ -91,7 +89,6 @@ function AppRoutes() {
         element={<Navigate to="/usuario/home#correspondencias" replace />}
       />
 
-      <Route path="/usuario/denuncias" element={<DenunciasPage />} />
 
       <Route
         path="/prototipo/admin"

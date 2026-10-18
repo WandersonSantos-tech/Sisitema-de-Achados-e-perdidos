@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from app.models.item import Item
     from app.models.message import Message
     from app.models.notification import Notification
-    from app.models.report import Report
     from app.models.review import Review
     from app.models.status_history import StatusHistory
 
@@ -46,7 +45,7 @@ class User(Base, TimestampMixin):
 
     items: Mapped[list[Item]] = relationship(
         back_populates="user", cascade="all, delete-orphan")
-    claims: Mapped[list[Claim]] = relationship(back_populates="requester")
+    claims: Mapped[list[Claim]] = relationship(back_populates="requester", foreign_keys="Claim.requester_id")
     sent_messages: Mapped[list[Message]] = relationship(
         back_populates="sender",
         foreign_keys="Message.sender_id",
@@ -68,12 +67,4 @@ class User(Base, TimestampMixin):
     reviews_received: Mapped[list[Review]] = relationship(
         back_populates="reviewed_user",
         foreign_keys="Review.reviewed_user_id",
-    )
-    reports_submitted: Mapped[list[Report]] = relationship(
-        back_populates="reporter",
-        foreign_keys="Report.reporter_id",
-    )
-    reports_about_user: Mapped[list[Report]] = relationship(
-        back_populates="reported_user",
-        foreign_keys="Report.reported_user_id",
     )

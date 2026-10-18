@@ -9,6 +9,8 @@ function ItemDetalhePage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [item, setItem] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -355,6 +357,23 @@ function ItemDetalhePage() {
               </div>
             </section>
 
+            <section className="item-detalhe-card">
+              <button onClick={() => setEditando(!editando)}>{editando ? "Fechar edição" : "Editar objeto"}</button>
+              {editando && <form onSubmit={async (event) => {
+                event.preventDefault(); setSalvando(true);
+                const values = new FormData(event.currentTarget);
+                try {
+                  setItem(await itemService.atualizarItem(item.id, Object.fromEntries(values)));
+                  setEditando(false);
+                } catch (error) { alert(error.message); }
+                finally { setSalvando(false); }
+              }}>
+                <label>Nome<input name="title" required minLength={3} maxLength={150} defaultValue={item.title} /></label>
+                <label>Descrição<textarea name="description" required minLength={10} defaultValue={item.description} /></label>
+                <label>Local<input name="location_name" required maxLength={255} defaultValue={item.location_name} /></label>
+                <button disabled={salvando}>Salvar alterações</button>
+              </form>}
+            </section>
             <section className="item-danger-zone">
               <div className="item-danger-content">
                 <span className="item-danger-label">

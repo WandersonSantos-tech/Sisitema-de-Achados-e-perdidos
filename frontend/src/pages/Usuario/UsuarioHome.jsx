@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { notificationService } from "../../services/notificationService";
 import { authService } from "../../services/authService";
+import { claimService } from "../../services/claimService";
 import { itemService } from "../../services/itemService";
 
 import "./UsuarioHome.css";
@@ -208,6 +209,8 @@ function UsuarioHome() {
 
   const usuario = authService.getUsuario();
 
+  const [solicitando, setSolicitando] = useState(false);
+  const [erroSolicitacao, setErroSolicitacao] = useState("");
   const [menuAberto, setMenuAberto] = useState(false);
 
 
@@ -516,7 +519,6 @@ async function carregarCorrespondenciasDoItem(item) {
           >
             Solicitações
           </button>
-          <button className="nav-item" onClick={() => navegar("/usuario/denuncias")}>Denúncias</button>
         </nav>
 
         <div className="navbar-actions">
@@ -929,10 +931,27 @@ async function carregarCorrespondenciasDoItem(item) {
         </div>
 
         <div className="match-actions">
+          {erroSolicitacao && <p role="alert">{erroSolicitacao}</p>}
+          {correspondenciasItemSelecionado.map((match) => (
+            <div key={match.matched_item_id}>
+              <strong>{match.matched_item_title}</strong>
+              <p>{match.matched_item_description}</p>
+              <button disabled={solicitando} onClick={async () => {
+                setSolicitando(true); setErroSolicitacao("");
+                try {
+                  await claimService.create(match.matched_item_id, {
+                    proof_description: itemCorrespondenciaSelecionado?.description || "Solicitação a partir de correspondência do meu objeto perdido",
+                  });
+                  navigate("/usuario/solicitacoes");
+                } catch (error) { setErroSolicitacao(error.message); }
+                finally { setSolicitando(false); }
+              }}>É meu objeto: solicitar devolução</button>
+            </div>
+          ))}
           <button
             onClick={() =>
               navigate(
-                "/usuario/correspondencias",
+                "/usuario/solicitacoes",
                 {
                   state: {
                     itemId:
@@ -1445,7 +1464,6 @@ async function carregarCorrespondenciasDoItem(item) {
         </div>
 
         <div className="footer-links">
-          <button onClick={() => navegar("/usuario/denuncias")}>Denúncias</button>
           <button
             onClick={() =>
               navegar("/usuario/perfil")

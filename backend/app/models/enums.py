@@ -23,6 +23,7 @@ class ItemStatus(str, enum.Enum):
 
 
 class ClaimStatus(str, enum.Enum):
+    CORRESPONDENCIA = "CORRESPONDENCIA"
     PENDENTE = "PENDENTE"
     APROVADA = "APROVADA"
     REJEITADA = "REJEITADA"

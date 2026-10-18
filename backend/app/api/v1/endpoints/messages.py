@@ -170,7 +170,7 @@ async def get_claim_contact(
             StatusHistory.item_id == claim.item_id,
             StatusHistory.new_status == ItemStatus.EM_NEGOCIACAO,
             StatusHistory.note == f"Reivindicação #{claim.id} aprovada",
-            User.role == UserRole.ADMIN,
+            User.role.in_((UserRole.ADMIN, UserRole.COLABORADOR)),
         )
         .order_by(StatusHistory.created_at.desc())
         .limit(1)
@@ -180,13 +180,19 @@ async def get_claim_contact(
     funcionario = resultado_funcionario.scalar_one_or_none()
 
 
+    if claim.responsible_id:
+        funcionario = await db.get(User, claim.responsible_id)
     if funcionario is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Não foi possível identificar o administrador responsável pela aprovação",
-        )
-
-    return {
-        "id": str(funcionario.id),
-        "name": funcionario.name,
-    }
+        from app.models.item import Item
+        owner_id = await db.scalar(select(Item.user_id).where(Item.id == claim.item_id))
+        funcionario = await db.get(User, owner_id)
+        if funcionario is None or funcionario.role not in (UserRole.ADMIN, UserRole.COLABORADOR):
+            funcionario = await db.scalar(select(User).where(
+                User.role.in_((UserRole.ADMIN, UserRole.COLABORADOR)), User.is_active.is_(True)
+            ).order_by(User.created_at).limit(1))
+        if funcionario:
+            claim.responsible_id = funcionario.id
+            await db.commit()
+    if funcionario is None:
+        raise HTTPException(404, "Não há funcionário disponível para esta solicitação")
+    return {"id": str(funcionario.id), "name": funcionario.name}

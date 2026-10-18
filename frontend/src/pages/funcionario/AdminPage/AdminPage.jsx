@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-
+import { claimService } from "../../../services/claimService";
 import { authService } from "../../../services/authService";
 import { itemService } from "../../../services/itemService";
 import { adminService } from "../../../services/adminService";
@@ -35,7 +35,6 @@ const sections = [
   ["solicitacoes", "Solicitações"],
   ["usuarios", "Usuários"],
   ["categorias", "Categorias"],
-  ["denuncias", "Denúncias"],
 ];
 
 const date = (value) =>
@@ -46,7 +45,10 @@ const statusLabel = (value) => (value || "").replaceAll("_", " ");
 export default function AdminPage() {
   const { secao = "dashboard" } = useParams();
   const navigate = useNavigate();
+  const currentUser = authService.getUsuario();
+  const roleLabel = currentUser?.role === "ADMIN" ? "Administrador" : "Funcionário";
 
+  const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -83,7 +85,6 @@ export default function AdminPage() {
       [
         "usuarios",
         "publicacoes",
-        "denuncias",
         "categorias",
         "dashboard",
       ].includes(secao)
@@ -101,6 +102,8 @@ export default function AdminPage() {
 
         objetos: () =>
           adminService.items({
+            origin: "user",
+            page,
             page_size: 100,
             ...(filter ? { item_type: filter } : {}),
             ...(search ? { search } : {}),
@@ -108,11 +111,12 @@ export default function AdminPage() {
 
         correspondencias: () =>
           adminService.items({
+            page,
             item_type: "ENCONTRADO",
             page_size: 100,
           }),
 
-        solicitacoes: adminService.claims,
+        solicitacoes: () => adminService.claims({ page, page_size: 20 }),
 
         usuarios: () =>
           adminService.users({
@@ -121,7 +125,6 @@ export default function AdminPage() {
           }),
 
         categorias: adminService.categories,
-        denuncias: adminService.reports,
       };
 
       setData(await (loaders[secao] || loaders.dashboard)());
@@ -134,7 +137,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [secao, filter, search]);
+  }, [secao, filter, search, page]);
 
   useEffect(() => {
     load();
@@ -225,7 +228,7 @@ async function openManualMatch() {
 
           <div>
             Onde<span>Tá</span>
-            <small>Painel do funcionário</small>
+            <small>Painel do {roleLabel}</small>
           </div>
         </div>
 
@@ -251,7 +254,7 @@ async function openManualMatch() {
       <main className="admin-main">
         <header className="admin-header">
           <div>
-            <span className="admin-eyebrow">PAINEL DO FUNCIONÁRIO</span>
+            <span className="admin-eyebrow">PAINEL DO {roleLabel.toUpperCase()}</span>
 
             <h1>{title}</h1>
 
@@ -259,7 +262,7 @@ async function openManualMatch() {
           </div>
 
           <div className="admin-user">
-            {authService.getUsuario()?.name || "Funcionário"}
+            {currentUser?.name} — {roleLabel}
           </div>
         </header>
 
@@ -278,7 +281,6 @@ async function openManualMatch() {
         {[
           "usuarios",
           "publicacoes",
-          "denuncias",
           "categorias",
           "dashboard",
         ].includes(secao) ? (
@@ -601,6 +603,9 @@ async function openManualMatch() {
             {secao === "correspondencias" && (
               <>
                 <p className="admin-hint">
+                  <NavLink to="/funcionario/solicitacoes">Abrir solicitações e conversas</NavLink>
+                </p>
+                <p className="admin-hint">
                   Selecione um objeto encontrado para analisar as sugestões. O
                   envio ao usuário depende da sua confirmação.
                 </p>
@@ -783,33 +788,55 @@ async function openManualMatch() {
                         {c.requester?.name} · {c.requester?.email}
                       </p>
 
-                      <p>Comprovação: {c.proof_description}</p>
+                      <p>{c.proof_description}</p>
+                      {c.status === "CORRESPONDENCIA" && <p>Aguardando confirmação de propriedade pelo usuário.</p>}
 
                       <small>
                         {statusLabel(c.status)} · {date(c.created_at)}
                       </small>
                     </div>
 
+
                     <button
                       type="button"
                       className="secondary"
-                      onClick={() =>
-                        setChatClaimId(
-                          chatClaimId === c.id ? null : c.id
-                        )
-                      }
+                      disabled={c.status === "REJEITADA"}
+                      onClick={async () => {
+                        if (chatClaimId === c.id) {
+                          setChatClaimId(null);
+                          return;
+                        }
+
+                        try {
+                          setBusy(true);
+                          setError("");
+
+                          await claimService.startNegotiation(c.id);
+
+                          setChatClaimId(c.id);
+                        } catch (err) {
+                          setError(
+                            err.message || "Não foi possível iniciar a negociação."
+                          );
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
                     >
-                      {chatClaimId === c.id
-                        ? "Fechar conversa"
-                        : "Conversar com usuário"}
+                      {chatClaimId === c.id ? "Fechar conversa" : "Abrir conversa"}
                     </button>
 
                     {chatClaimId === c.id && (
                       <ClaimChat
-                        itemId={c.item_id}
-                        interlocutorId={c.requester_id}
-                        interlocutorNome={c.requester?.name}
-                      />
+                      itemId={c.item_id}
+                      interlocutorId={c.requester_id}
+                      interlocutorNome={c.requester?.name}
+                      nomeObjeto={c.item?.title || "Objeto"}
+                      claimId={c.id}
+                      pickupAt={c.pickup_at}
+                      onReturned={load}
+                      permitirDevolucao={c.status !== "REJEITADA" &&!c.returned_at}
+                    />
                     )}
 
                     {c.status === "PENDENTE" && (
@@ -845,6 +872,13 @@ async function openManualMatch() {
               />
             )}
           </>
+        )}
+        {["objetos", "correspondencias", "solicitacoes"].includes(secao) && data && (
+          <div className="admin-actions">
+            <button disabled={loading || page <= 1} onClick={() => setPage(page - 1)}>Anterior</button>
+            <span>Página {page}</span>
+            <button disabled={loading || page * data.page_size >= data.total} onClick={() => setPage(page + 1)}>Próxima</button>
+          </div>
         )}
         <footer className="admin-footer-links">
           <NavLink to="/funcionario/dashboard">← Voltar à visão geral</NavLink>

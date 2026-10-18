@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.models.enums import ClaimStatus
+from app.schemas.item import ItemImageResponse
 
 
 class ClaimCreate(BaseModel):
@@ -24,6 +25,9 @@ class ClaimResponse(BaseModel):
     """DTO básico para reivindicação"""
     id: uuid.UUID
     item_id: uuid.UUID
+    pickup_at: Optional[datetime] = None
+    returned_at: Optional[datetime] = None
+    responsible_id: Optional[uuid.UUID] = None
     requester_id: uuid.UUID
     proof_description: str
     status: ClaimStatus
@@ -47,6 +51,8 @@ class ItemInfo(BaseModel):
     id: uuid.UUID
     title: str
     location_name: str
+    description: str
+    images: list[ItemImageResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,6 +61,9 @@ class ClaimDetailResponse(BaseModel):
     """DTO detalhado para reivindicação com dados do solicitante e item"""
     id: uuid.UUID
     item_id: uuid.UUID
+    pickup_at: Optional[datetime] = None
+    returned_at: Optional[datetime] = None
+    responsible_id: Optional[uuid.UUID] = None
     requester_id: uuid.UUID
     proof_description: str
     status: ClaimStatus

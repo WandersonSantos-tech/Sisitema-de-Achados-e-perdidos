@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated
+from sqlalchemy import select
+from app.models.claim import Claim
+from app.models.item import Item
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,7 +135,7 @@ async def get_item_claims(
         )
 
     # Validar permissões
-    if current_user.id != item.user_id and current_user.role != UserRole.ADMIN:
+    if current_user.id != item.user_id and current_user.role not in (UserRole.ADMIN, UserRole.COLABORADOR):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas o proprietário do item ou administradores podem consultar reivindicações",
@@ -247,3 +250,153 @@ async def get_my_claims(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, AwareDatetime
+from app.api.deps import get_current_staff
+from app.models.status_history import StatusHistory
+from app.models.enums import ClaimStatus, ItemStatus
+
+class PickupInput(BaseModel):
+    pickup_at: AwareDatetime
+
+class ReturnInput(BaseModel):
+    signature: str = Field(min_length=100, max_length=300000)
+
+
+async def return_claim(db, claim_id, staff):
+    claim = await db.scalar(
+        select(Claim)
+        .where(Claim.id == claim_id)
+        .with_for_update()
+    )
+
+    if claim is None:
+        raise HTTPException(404, "Solicitação não encontrada")
+
+    if claim.status == ClaimStatus.REJEITADA:
+        raise HTTPException(409, "Solicitação rejeitada")
+
+    if claim.returned_at:
+        raise HTTPException(409, "Objeto já devolvido")
+
+    item = await db.scalar(
+        select(Item)
+        .where(Item.id == claim.item_id)
+        .with_for_update()
+    )
+
+    if item is None:
+        raise HTTPException(404, "Objeto não encontrado")
+
+    if item.status != ItemStatus.EM_NEGOCIACAO:
+        raise HTTPException(
+            409,
+            "Abra a conversa para iniciar a negociação antes da retirada"
+        )
+
+    if claim.responsible_id and claim.responsible_id != staff.id:
+        raise HTTPException(
+            403,
+            "Somente o funcionário responsável pode registrar a retirada"
+        )
+
+    return claim, item
+
+
+@router.post("/claims/{claim_id}/start-negotiation")
+async def start_negotiation(
+    claim_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    staff: User = Depends(get_current_staff),
+):
+    claim = await db.scalar(
+        select(Claim)
+        .where(Claim.id == claim_id)
+        .with_for_update()
+    )
+
+    if claim is None:
+        raise HTTPException(404, "Solicitação não encontrada")
+
+    if claim.status == ClaimStatus.REJEITADA or claim.returned_at:
+        raise HTTPException(409, "Solicitação indisponível")
+
+    if claim.responsible_id and claim.responsible_id != staff.id:
+        raise HTTPException(
+            403,
+            "Solicitação vinculada a outro funcionário"
+        )
+
+    item = await db.scalar(
+        select(Item)
+        .where(Item.id == claim.item_id)
+        .with_for_update()
+    )
+
+    if item is None:
+        raise HTTPException(404, "Objeto não encontrado")
+
+    if item.status in (
+        ItemStatus.DEVOLVIDO,
+        ItemStatus.CANCELADO,
+    ):
+        raise HTTPException(409, "Objeto indisponível")
+
+    if item.status == ItemStatus.PERDIDO:
+        raise HTTPException(
+            409,
+            "O objeto ainda está registrado como perdido"
+        )
+
+    if item.status != ItemStatus.EM_NEGOCIACAO:
+        previous_status = item.status
+        item.status = ItemStatus.EM_NEGOCIACAO
+
+        db.add(
+            StatusHistory(
+                item_id=item.id,
+                changed_by=staff.id,
+                previous_status=previous_status,
+                new_status=ItemStatus.EM_NEGOCIACAO,
+                note="Negociação iniciada ao abrir conversa",
+            )
+        )
+
+    if claim.responsible_id is None:
+        claim.responsible_id = staff.id
+
+    await db.commit()
+
+    return {
+        "message": "Negociação iniciada",
+        "status": item.status.value,
+    }
+
+
+@router.patch("/claims/{claim_id}/pickup", response_model=ClaimResponse)
+async def schedule_pickup(claim_id: uuid.UUID, body: PickupInput,
+                          db: AsyncSession = Depends(get_db), staff: User = Depends(get_current_staff)):
+    claim, item = await return_claim(db, claim_id, staff)
+    if body.pickup_at <= datetime.now(timezone.utc):
+        raise HTTPException(400, "Escolha uma data futura")
+    claim.pickup_at = body.pickup_at
+    await db.commit()
+    return claim
+
+@router.post("/claims/{claim_id}/return", response_model=ClaimResponse)
+async def complete_return(claim_id: uuid.UUID, body: ReturnInput,
+                          db: AsyncSession = Depends(get_db), staff: User = Depends(get_current_staff)):
+    claim, item = await return_claim(db, claim_id, staff)
+    if not claim.pickup_at:
+        raise HTTPException(400, "Agende a retirada antes de confirmar")
+    if not body.signature.startswith("data:image/png;base64,"):
+        raise HTTPException(400, "Assinatura de simulação inválida")
+    claim.signature = body.signature
+    claim.returned_at = datetime.now(timezone.utc)
+    db.add(StatusHistory(item_id=item.id, changed_by=staff.id, previous_status=item.status,
+                         new_status=ItemStatus.DEVOLVIDO, note=f"Retirada da solicitação #{claim.id}; assinatura simulada"))
+    item.status = ItemStatus.DEVOLVIDO
+    await db.commit()
+    return claim

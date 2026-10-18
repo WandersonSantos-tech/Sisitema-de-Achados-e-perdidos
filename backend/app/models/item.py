@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from app.models.item_image import ItemImage
     from app.models.message import Message
     from app.models.notification import Notification
-    from app.models.report import Report
     from app.models.review import Review
     from app.models.status_history import StatusHistory
     from app.models.user import User
@@ -53,6 +52,7 @@ class Item(Base, TimestampMixin):
                 create_constraint=True, validate_strings=True),
         nullable=False,
     )
+    internal_origin: Mapped[bool] = mapped_column(sa.Boolean, default=False, server_default=sa.false(), nullable=False)
     title: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     secret_details: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -84,5 +84,3 @@ class Item(Base, TimestampMixin):
     messages: Mapped[list[Message]] = relationship(
         back_populates="item", cascade="all, delete-orphan")
     reviews: Mapped[list[Review]] = relationship(back_populates="item")
-    reports: Mapped[list[Report]] = relationship(
-        back_populates="reported_item")

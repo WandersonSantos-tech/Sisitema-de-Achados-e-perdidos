@@ -38,7 +38,7 @@ async function handleSubmit(event) {
 
     // Login pela área de funcionário
     if (modoFuncionario) {
-      if (usuario.role !== "ADMIN") {
+      if (!["ADMIN", "COLABORADOR"].includes(usuario.role)) {
         authService.logout();
 
         setErro(
@@ -59,7 +59,7 @@ async function handleSubmit(event) {
     }
 
     // Caso um ADMIN faça login pela tela normal
-    if (usuario.role === "ADMIN") {
+    if (["ADMIN", "COLABORADOR"].includes(usuario.role)) {
       navigate("/funcionario/dashboard");
       return;
     }

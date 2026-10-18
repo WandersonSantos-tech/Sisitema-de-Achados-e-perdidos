@@ -6,11 +6,6 @@ import { authService } from "../../../services/authService";
 import "./AdminManagement.css";
 
 const day = (value) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
-const decisionLabels = {
-  ARQUIVAR: "Arquivada sem sanção",
-  REMOVER_PUBLICACAO: "Publicação removida",
-  BLOQUEAR_USUARIO: "Usuário bloqueado",
-};
 const emptyCategory = { name: "", description: "" };
 
 const getImageUrl = (photo) => {
@@ -47,9 +42,9 @@ export default function AdminManagement({ section }) {
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [form, setForm] = useState(null);
+  const [staffForm, setStaffForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [confirm, setConfirm] = useState(null);
   const [reason, setReason] = useState("");
-  const [decision, setDecision] = useState("ARQUIVAR");
   const [loadFailed, setLoadFailed] = useState(false);
 
   function change(values) {
@@ -83,10 +78,6 @@ export default function AdminManagement({ section }) {
               search,
               status_filter: filter,
             }),
-      denuncias: () =>
-        id
-          ? api.report(id)
-          : api.reports({ page, page_size: 20, search, resolved: filter }),
       categorias: adminService.categories,
       dashboard: adminService.stats,
     };
@@ -146,12 +137,7 @@ export default function AdminManagement({ section }) {
           ["true", "Ativos"],
           ["false", "Bloqueados"],
         ]
-      : section === "denuncias"
-        ? [
-            ["false", "Pendentes"],
-            ["true", "Analisadas"],
-          ]
-        : [
+      : [
             ["PERDIDO", "Perdidos"],
             ["ENCONTRADO", "Encontrados"],
             ["EM_NEGOCIACAO", "Em negociação"],
@@ -172,6 +158,23 @@ export default function AdminManagement({ section }) {
         <div role="status" className="admin-alert success">
           {notice}
         </div>
+      )}
+      {section === "usuarios" && authService.getUsuario()?.role === "ADMIN" && (
+        <section className="admin-card">
+          <h2>Cadastrar funcionário</h2>
+          <form className="admin-form" onSubmit={(event) => {
+            event.preventDefault();
+            perform(() => adminService.createStaff(staffForm), "Funcionário cadastrado.",
+              () => setStaffForm({ name: "", email: "", phone: "", password: "" }));
+          }}>
+            {[["name", "Nome", "text"], ["email", "E-mail", "email"], ["phone", "Telefone", "tel"], ["password", "Senha", "password"]].map(([key, label, type]) => (
+              <label key={key}>{label}<input type={type} required={key !== "phone"}
+                minLength={key === "password" ? 8 : undefined} value={staffForm[key]}
+                onChange={(event) => setStaffForm({ ...staffForm, [key]: event.target.value })} /></label>
+            ))}
+            <button disabled={busy}>Cadastrar funcionário</button>
+          </form>
+        </section>
       )}
       {section !== "dashboard" && !id && (
         <form
@@ -231,8 +234,6 @@ export default function AdminManagement({ section }) {
               ["Itens devolvidos", data.total_returned_items],
               ["Removidos / cancelados", data.removed_items],
               ["Taxa de devolução", `${data.return_success_rate}%`],
-              ["Denúncias pendentes", data.pending_reports],
-              ["Denúncias analisadas", data.resolved_reports],
             ].map(([label, value]) => (
               <div className="admin-card metric" key={label}>
                 <span>{label}</span>
@@ -310,8 +311,6 @@ export default function AdminManagement({ section }) {
                     <b>
                       {row.name ||
                         row.title ||
-                        row.reported_item?.title ||
-                        row.reported_user?.name ||
                         "Denúncia"}
                     </b>
 
@@ -330,9 +329,7 @@ export default function AdminManagement({ section }) {
                           : "Bloqueado"
                         : section === "publicacoes"
                           ? row.status.replaceAll("_", " ")
-                          : row.is_resolved
-                            ? decisionLabels[row.resolution_action] || "Resolvida"
-                            : "Pendente"}{" "}
+                          : ""}{" "}
                       · {day(row.created_at)}
                     </small>
                   </div>
@@ -345,9 +342,7 @@ export default function AdminManagement({ section }) {
                     change({ id: row.id });
                   }}
                 >
-                  {section === "denuncias"
-                    ? "Analisar denúncia"
-                    : "Ver detalhes"}
+                  Ver detalhes
                 </button>
               </article>
             ))}
@@ -359,7 +354,7 @@ export default function AdminManagement({ section }) {
           <button className="secondary" onClick={() => change({ id: null })}>
             ← Voltar à lista
           </button>
-          <h2>{detail.name || detail.title || "Análise da denúncia"}</h2>
+          <h2>{detail.name || detail.title || "Detalhes"}</h2>
           {section === "usuarios" && (
             <>
               <p>E-mail: {detail.email}</p>
@@ -370,7 +365,7 @@ export default function AdminManagement({ section }) {
               </p>
               <p>Cadastrado em: {day(detail.created_at)}</p>
               <p>Publicações: {detail.total_items}</p>
-              {detail.id === authService.getUsuario()?.id ? (
+              {authService.getUsuario()?.role !== "ADMIN" ? null : detail.id === authService.getUsuario()?.id ? (
                 <p>Você não pode bloquear a própria conta.</p>
               ) : (
                 <button
@@ -462,103 +457,7 @@ export default function AdminManagement({ section }) {
               )}
             </>
           )}
-          {section === "denuncias" && (
-            <>
-              <p>
-                <strong>Motivo:</strong> {detail.reason}
-              </p>
-              <p>Recebida em: {day(detail.created_at)}</p>
-              <p>
-                Denunciante: {detail.reporter?.name || "Usuário indisponível"}
-              </p>
-              <p>Situação: {detail.is_resolved ? "Analisada" : "Pendente"}</p>
-              {detail.reported_item_id && (
-                <Link
-                  className="management-link"
-                  to={`/funcionario/publicacoes?id=${detail.reported_item_id}`}
-                >
-                  Ver publicação denunciada
-                </Link>
-              )}
-              {(detail.reported_user_id || detail.reported_item) && (
-                <Link
-                  className="management-link"
-                  to={`/funcionario/usuarios?id=${detail.reported_user_id || detail.reported_item?.user_id || ""}`}
-                >
-                  {detail.reported_user_id
-                    ? "Ver usuário denunciado"
-                    : "Ver autor da publicação denunciada"}
-                </Link>
-              )}
-              {detail.is_resolved ? (
-                <>
-                  <p>
-                    Decisão:{" "}
-                    {decisionLabels[detail.resolution_action] || "Resolvida"}
-                  </p>
-                  <p>
-                    Parecer:{" "}
-                    {detail.resolution_notes ||
-                      "Sem parecer registrado anteriormente."}
-                  </p>
-                  <p>Analisada em: {day(detail.resolved_at)}</p>
-                </>
-              ) : (
-                <form
-                  className="admin-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    ask("Confirmar a decisão desta denúncia?", () =>
-                      perform(
-                        () => api.decide(detail.id, decision, reason.trim()),
-                        "Parecer salvo e denúncia concluída.",
-                      ),
-                    );
-                  }}
-                >
-                  <label className="wide">
-                    Decisão
-                    <select
-                      value={decision}
-                      onChange={(e) => setDecision(e.target.value)}
-                    >
-                      <option value="ARQUIVAR">Arquivar sem sanção</option>
-                      {detail.reported_item_id && (
-                        <option value="REMOVER_PUBLICACAO">
-                          Remover publicação
-                        </option>
-                      )}
-                      {(detail.reported_user_id || detail.reported_item_id) && (
-                        <option value="BLOQUEAR_USUARIO">
-                          Bloquear usuário denunciado / autor
-                        </option>
-                      )}
-                    </select>
-                  </label>
-                  <label className="wide">
-                    Parecer da análise
-                    <textarea
-                      required
-                      minLength={10}
-                      maxLength={500}
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  <button disabled={busy || reason.trim().length < 10}>
-                    Concluir análise
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => change({ id: null })}
-                  >
-                    Cancelar e voltar
-                  </button>
-                </form>
-              )}
-            </>
-          )}
+
         </section>
       )}
       {!loading && !loadFailed && section === "categorias" && (

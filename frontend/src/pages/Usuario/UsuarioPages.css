@@ -353,3 +353,12 @@
     grid-template-columns: 1fr;
   }
 }
+/* Ajustes para formulários, mensagens e telas estreitas. */
+@media (max-width: 640px) {
+  input, select, textarea { max-width: 100%; min-width: 0; font-size: 16px; }
+  img, canvas { max-width: 100%; }
+  .usuario-page, .usuario-page-content, .usuario-page-header { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .usuario-page-header { flex-wrap: wrap; gap: 12px; }
+  .usuario-page-content { padding: 16px; }
+  p, h1, h2, h3 { overflow-wrap: anywhere; }
+}
