@@ -33,6 +33,9 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(
         String(150), nullable=False, unique=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cpf: Mapped[str | None] = mapped_column(
+    String(11), nullable=True, unique=True, index=True)
+    cpf_provisorio: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         sa.Enum(UserRole, name="user_role", native_enum=True,

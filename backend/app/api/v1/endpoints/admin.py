@@ -23,6 +23,8 @@ from app.schemas.claim import ClaimDetailResponse
 from app.schemas.item import ItemListResponse, ItemResponse
 from app.services.moderation_service import remove_publication
 from app.services.matching_service import matching_service
+from app.schemas.user import UserResponse
+from app.core.security import hash_password
 
 
 router = APIRouter(
@@ -715,12 +717,13 @@ async def remove_item(item_id: UUID, body: RemovalInput, db: AsyncSession = Depe
     return ItemResponse.model_validate(await get_item_or_404(db, item_id))
 
 
-
-from app.schemas.user import UserCreate, UserResponse
-from app.core.security import hash_password
-
+class StaffCreate(BaseModel):
+    name: str
+    email: str
+    phone: str | None = None
+    password: str = Field(..., min_length=8)
 @router.post("/staff", response_model=UserResponse, status_code=201)
-async def create_staff(body: UserCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
+async def create_staff(body: StaffCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
     user = User(name=body.name.strip(), email=str(body.email).lower(), phone=body.phone,
                 password_hash=hash_password(body.password), role=UserRole.COLABORADOR)
     db.add(user)

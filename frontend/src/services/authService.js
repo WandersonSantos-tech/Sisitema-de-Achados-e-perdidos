@@ -52,12 +52,13 @@ export const authService = {
     };
   },
 
-  async cadastrar(nome, email, telefone, senha) {
+  async cadastrar(nome, cpf, email, telefone, senha) {
     return apiRequest(REGISTER_ENDPOINT, {
       method: "POST",
 
       body: JSON.stringify({
         name: nome,
+        cpf: cpf.replace(/\D/g, ""),
         email,
         phone: telefone || null,
         password: senha,

@@ -21,10 +21,19 @@ async def register_user(db: AsyncSession, user_in) -> User:
     if existing:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
 
+    cpf_existente = await db.execute(select(User).where(User.cpf == user_in.cpf))
+    if cpf_existente.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail="CPF já cadastrado"
+        )
+
     user = User(
         name=user_in.name,
         email=user_in.email,
         phone=user_in.phone,
+        cpf=user_in.cpf,
+        cpf_provisorio=False,
         password_hash=hash_password(user_in.password),
     )
     db.add(user)

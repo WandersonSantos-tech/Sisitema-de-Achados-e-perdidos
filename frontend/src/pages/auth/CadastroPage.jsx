@@ -9,6 +9,7 @@ function CadastroPage() {
   const navigate = useNavigate();
 
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
@@ -28,6 +29,7 @@ function CadastroPage() {
       !nome.trim() ||
       !email.trim() ||
       !senha.trim() ||
+      !cpf.trim() ||
       !confirmarSenha.trim()
     ) {
       setErro(
@@ -58,6 +60,7 @@ function CadastroPage() {
 
       await authService.cadastrar(
         nome.trim(),
+        cpf,
         email.trim(),
         telefone.trim(),
         senha
@@ -130,7 +133,31 @@ function CadastroPage() {
               }
             />
           </div>
+          <div className="auth-field">
+            <label htmlFor="cpf">CPF</label>
 
+            <input
+              id="cpf"
+              type="text"
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              maxLength={14}
+              value={cpf}
+              onChange={(event) => {
+                const numeros = event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 11);
+
+                const formatado = numeros
+                  .replace(/^(\d{3})(\d)/, "$1.$2")
+                  .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+                  .replace(/\.(\d{3})(\d)/, ".$1-$2");
+
+                setCpf(formatado);
+              }}
+              required
+            />
+          </div>
           <div className="auth-field">
             <label htmlFor="email">
               E-mail
