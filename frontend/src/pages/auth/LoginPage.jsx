@@ -37,17 +37,10 @@ function LoginPage() {
     try {
       setCarregando(true);
 
-<<<<<<< HEAD
-    // Login pela área de funcionário
-    if (modoFuncionario) {
-      if (!["ADMIN", "COLABORADOR"].includes(usuario.role)) {
-        authService.logout();
-=======
       const { usuario } = await authService.login(
         email.trim(),
         senha.trim()
       );
->>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
 
       if (!isMounted.current) return;
 
@@ -96,36 +89,6 @@ function LoginPage() {
         setCarregando(false);
       }
     }
-<<<<<<< HEAD
-
-    // Login normal do usuário
-    if (usuario.role === "USER") {
-      navigate("/usuario/home");
-      return;
-    }
-
-    // Caso um ADMIN faça login pela tela normal
-    if (["ADMIN", "COLABORADOR"].includes(usuario.role)) {
-      navigate("/funcionario/dashboard");
-      return;
-    }
-
-    authService.logout();
-    setErro("Tipo de usuário não reconhecido.");
-
-  } catch (error) {
-    console.error("ERRO AO REALIZAR LOGIN:");
-    console.error(error);
-
-    setErro(
-      error.message ||
-        "Não foi possível realizar o acesso."
-    );
-
-  } finally {
-    setCarregando(false);
-=======
->>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
   }
 
   function alterarModo() {
