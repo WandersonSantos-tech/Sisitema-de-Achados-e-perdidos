@@ -36,16 +36,7 @@ function LoginPage() {
 
     try {
       setCarregando(true);
-
-<<<<<<< HEAD
-      const { usuario } = await authService.login(
-        email.trim(),
-        senha.trim()
-      );
-=======
       const { usuario } = await authService.login(email.trim(), senha.trim());
->>>>>>> 19d8e7a (feat: melhorias nas correspondencias e gerenciamento de objetos)
-
       if (!isMounted.current) return;
 
       const role = usuario?.role;
@@ -93,10 +84,6 @@ function LoginPage() {
         setCarregando(false);
       }
     }
-<<<<<<< HEAD
-=======
-
->>>>>>> 19d8e7a (feat: melhorias nas correspondencias e gerenciamento de objetos)
   }
 
   function alterarModo() {
