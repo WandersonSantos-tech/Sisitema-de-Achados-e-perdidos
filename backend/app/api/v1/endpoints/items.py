@@ -20,6 +20,7 @@ from fastapi import UploadFile, File
 from app.models.item_image import ItemImage
 from app.schemas.item import ItemImageResponse
 from app.core.config import settings
+from app.services.azure_blob_service import AzureBlobService
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -531,8 +532,20 @@ async def upload_item_images(
                 detail="Cada imagem pode ter no máximo 5 MB.",
             )
 
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+        blob_name = f"items/{item_id}/{filename}"
+
+        try:
+            blob_service = AzureBlobService()
+            blob_service.upload(
+                blob_name=blob_name,
+                content=content,
+                content_type=file.content_type,
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Não foi possível salvar a imagem no Azure Storage.",
+            ) from exc
 
         image_url = (
             f"/uploads/items/"
