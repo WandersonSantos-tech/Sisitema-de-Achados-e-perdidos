@@ -42,7 +42,7 @@ export default function AdminManagement({ section }) {
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
   const [form, setForm] = useState(null);
-  const [staffForm, setStaffForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [staffForm, setStaffForm] = useState({ name: "", email: "",cpf: "", phone: "", password: "" });
   const [confirm, setConfirm] = useState(null);
   const [reason, setReason] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
@@ -162,18 +162,51 @@ export default function AdminManagement({ section }) {
       {section === "usuarios" && authService.getUsuario()?.role === "ADMIN" && (
         <section className="admin-card">
           <h2>Cadastrar funcionário</h2>
+          
           <form className="admin-form" onSubmit={(event) => {
             event.preventDefault();
-            perform(() => adminService.createStaff(staffForm), "Funcionário cadastrado.",
-              () => setStaffForm({ name: "", email: "", phone: "", password: "" }));
+            perform(
+              () => adminService.createStaff(staffForm),
+              "Funcionário cadastrado.",
+              () => setStaffForm({
+                name: "", email: "", cpf: "", phone: "", password: ""
+              })
+            );
           }}>
-            {[["name", "Nome", "text"], ["email", "E-mail", "email"], ["phone", "Telefone", "tel"], ["password", "Senha", "password"]].map(([key, label, type]) => (
-              <label key={key}>{label}<input type={type} required={key !== "phone"}
-                minLength={key === "password" ? 8 : undefined} value={staffForm[key]}
-                onChange={(event) => setStaffForm({ ...staffForm, [key]: event.target.value })} /></label>
+            {[
+              ["name", "Nome", "text"],
+              ["email", "E-mail", "email"],
+              ["cpf", "CPF", "text"],
+              ["phone", "Telefone", "tel"],
+              ["password", "Senha", "password"]
+            ].map(([key, label, type]) => (
+              <label key={key}>
+                {label}
+                <input
+                  type={type}
+                  required={key !== "phone"}
+                  minLength={key === "password" ? 8 : undefined}
+                  maxLength={key === "cpf" ? 14 : undefined}
+                  inputMode={key === "cpf" ? "numeric" : undefined}
+                  placeholder={key === "cpf" ? "000.000.000-00" : undefined}
+                  value={staffForm[key]}
+                  onChange={(event) => {
+                    let value = event.target.value;
+                    if (key === "cpf") {
+                      const digits = value.replace(/\D/g, "").slice(0, 11);
+                      value = digits
+                        .replace(/^(\d{3})(\d)/, "$1.$2")
+                        .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+                        .replace(/\.(\d{3})(\d)/, ".$1-$2");
+                    }
+                    setStaffForm({ ...staffForm, [key]: value });
+                  }}
+                />
+              </label>
             ))}
             <button disabled={busy}>Cadastrar funcionário</button>
           </form>
+
         </section>
       )}
       {section !== "dashboard" && !id && (
@@ -278,9 +311,7 @@ export default function AdminManagement({ section }) {
             <h2>
               {section === "usuarios"
                 ? "Usuários cadastrados"
-                : section === "publicacoes"
-                  ? "Publicações cadastradas"
-                  : "Denúncias recebidas"}
+                : "Publicações cadastradas"}
             </h2>
 
 
@@ -309,17 +340,11 @@ export default function AdminManagement({ section }) {
 
                   <div className="admin-item-info">
                     <b>
-                      {row.name ||
-                        row.title ||
-                        "Denúncia"}
+                      {row.name || row.title}
                     </b>
 
                     <p>
-                      {section === "usuarios"
-                        ? row.email
-                        : section === "publicacoes"
-                          ? row.location_name
-                          : row.reason}
+                      {section === "usuarios" ? row.email : row.location_name}
                     </p>
 
                     <small>

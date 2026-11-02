@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_staff, get_current_user, get_db
 from app.models.item import Item
+from app.models.match_dispatch import MatchDispatch
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
 from app.schemas.match import MatchListResponse, MatchResultResponse
+from app.models.claim import Claim
 from app.services.matching_service import matching_service
 from pathlib import Path
 import uuid
@@ -240,11 +242,41 @@ async def get_item_matches(
             detail="Item não encontrado ou acesso negado",
         )
 
-    matches = await matching_service.find_matches_for_item(db, item_id)
+    
+ 
+    result = await db.execute(
+        select(MatchDispatch)
+        .where(
+            MatchDispatch.lost_item_id == item_id,
+            MatchDispatch.recipient_id == current_user.id,
+        )
+        .order_by(MatchDispatch.created_at.desc())
+    )
+
+    dispatches = result.scalars().all()
+
+    from app.schemas.match import MatchScoreDetails
+
+  
+    items = [
+        MatchResultResponse(
+            item_id=item_id,
+            matched_item_id=dispatch.found_item_id,
+            similarity_score=dispatch.similarity_score,
+            is_manual=dispatch.is_manual,
+            matched_item_title="Objeto compatível",
+            matched_item_description="Detalhes protegidos até a validação",
+            matched_item_location_name="Informação protegida",
+            matched_item_event_date="",
+            matched_item_type="ENCONTRADO",
+            score_details=MatchScoreDetails(),
+        )
+        for dispatch in dispatches
+    ]
 
     return MatchListResponse(
-        total=len(matches),
-        items=[MatchResultResponse(**match) for match in matches],
+        total=len(items),
+        items=items,
     )
 
 
@@ -321,9 +353,36 @@ async def delete_item(
             detail="Item não encontrado ou acesso negado",
         )
 
+    
+    # Impede excluir objetos vinculados a uma
+    # correspondência enviada pela equipe.
+    dispatch = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.lost_item_id == item.id)
+            | (MatchDispatch.found_item_id == item.id)
+        )
+    )
+
+    # Proteção adicional para solicitações já existentes.
+    claim = await db.scalar(
+        select(Claim.id).where(
+            Claim.item_id == item.id
+        )
+    )
+
+    if dispatch is not None or claim is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não é possível excluir este item, pois já existe "
+                "uma solicitação de correspondência vinculada a ele."
+            ),
+        )
+
     await db.delete(item)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post(
     "/{item_id}/images",

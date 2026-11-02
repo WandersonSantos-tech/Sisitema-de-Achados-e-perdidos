@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.claim import Claim
-from app.models.enums import UserRole
+from app.models.enums import UserRole, ItemStatus
+from app.models.match_dispatch import MatchDispatch
+from app.models.status_history import StatusHistory
 from app.models.item import Item
 from app.models.message import Message
 from app.models.user import User
@@ -93,6 +95,53 @@ class MessageService:
 
         db.add(message)
         await db.flush()
+
+        
+        # A primeira mensagem da equipe inicia
+        # automaticamente a negociação dos objetos associados.
+        if sender.role in (UserRole.ADMIN, UserRole.COLABORADOR):
+
+            dispatch = await db.scalar(
+                select(MatchDispatch).where(
+                    MatchDispatch.found_item_id == item_id,
+                    MatchDispatch.recipient_id == msg_in.receiver_id,
+                )
+            )
+
+            if dispatch is not None:
+                related_items = (
+                    await db.scalars(
+                        select(Item)
+                        .where(
+                            Item.id.in_(
+                                (
+                                    dispatch.found_item_id,
+                                    dispatch.lost_item_id,
+                                )
+                            )
+                        )
+                        .with_for_update()
+                    )
+                ).all()
+
+                for related_item in related_items:
+                    if related_item.status == ItemStatus.ENCONTRADO:
+                        previous_status = related_item.status
+                        related_item.status = ItemStatus.EM_NEGOCIACAO
+
+                        db.add(
+                            StatusHistory(
+                                item_id=related_item.id,
+                                changed_by=sender.id,
+                                previous_status=previous_status,
+                                new_status=ItemStatus.EM_NEGOCIACAO,
+                                note=(
+                                    "Negociação iniciada automaticamente "
+                                    "pela mensagem do funcionário"
+                                ),
+                            )
+                        )
+
 
         # Disparar notificação para destinatário
         await NotificationService.create_notification(

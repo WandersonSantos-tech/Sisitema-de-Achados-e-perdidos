@@ -6,6 +6,10 @@ export const adminService = {
   stats: () => apiRequest('/admin/stats'),
   items: (params) => list('items', params),
   item: (id) => apiRequest(`/admin/items/${id}`),
+  updateStaffItem: (id, data) =>
+  apiRequest(`/admin/items/${id}/edit`, {method: "PATCH",body: JSON.stringify(data),}),
+  deleteStaffItem: (id) =>
+  apiRequest(`/admin/items/${id}/delete`, {method: "DELETE",}),
   status: (id, status) => apiRequest(`/admin/items/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   matches: (id) => apiRequest(`/admin/items/${id}/matches`),
   sendMatch: (foundId, lostId) => apiRequest(`/admin/items/${foundId}/matches/${lostId}/send`, { method: 'POST' }),

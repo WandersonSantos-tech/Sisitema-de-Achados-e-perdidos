@@ -77,6 +77,16 @@ export default function AdminPage() {
     secret_details: "",
   });
 
+  const [editingItem, setEditingItem] = useState(null);
+  const [editForm, setEditForm] = useState({
+    category_id: "",
+    title: "",
+    description: "",
+    secret_details: "",
+    location_name: "",
+    event_date: "",
+  });
+
   const [busy, setBusy] = useState(false);
   const [chatClaimId, setChatClaimId] = useState(null);
 
@@ -102,10 +112,10 @@ export default function AdminPage() {
 
         objetos: () =>
           adminService.items({
-            origin: "user",
+            origin: "internal",
+            item_type: "ENCONTRADO",
             page,
             page_size: 100,
-            ...(filter ? { item_type: filter } : {}),
             ...(search ? { search } : {}),
           }),
 
@@ -212,6 +222,84 @@ async function openManualMatch() {
       setBusy(false);
     }
   }
+
+function startEditItem(item) {
+  setEditingItem(item);
+  setEditForm({
+    category_id: String(item.category_id),
+    title: item.title || "",
+    description: item.description || "",
+    secret_details: item.secret_details || "",
+    location_name: item.location_name || "",
+    event_date: item.event_date
+      ? new Date(
+          new Date(item.event_date).getTime() -
+          new Date(item.event_date).getTimezoneOffset() * 60000
+        ).toISOString().slice(0, 16)
+      : "",
+  });
+}
+
+
+  async function saveEditedItem(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    setMessage("");
+
+    try {
+      await adminService.updateStaffItem(editingItem.id, {
+        ...editForm,
+        category_id: Number(editForm.category_id),
+        event_date: new Date(editForm.event_date).toISOString(),
+      });
+
+      setEditingItem(null);
+      setMessage("Objeto atualizado com sucesso.");
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+
+
+async function removeStaffItem(item) {
+  if (!window.confirm(`Deseja realmente excluir "${item.title}"?`)) {
+    return;
+  }
+
+  setBusy(true);
+
+  try {
+    await adminService.deleteStaffItem(item.id);
+
+    window.alert("Objeto excluído com sucesso!");
+    await load();
+
+  } catch (err) {
+    const aviso =
+      err?.response?.data?.detail ||
+      err?.data?.detail ||
+      err?.detail ||
+      err?.message ||
+      "Não foi possível excluir este objeto.";
+
+    window.alert(
+      "Não foi possível excluir o objeto!\n\n" +
+      (typeof aviso === "string"
+        ? aviso
+        : "Este objeto possui uma correspondência ou solicitação vinculada.")
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+
 
   function logout() {
     authService.logout();
@@ -417,16 +505,6 @@ async function openManualMatch() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
 
-                  <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                  >
-                    <option value="">Todos os tipos</option>
-
-                    <option value="PERDIDO">Perdidos</option>
-
-                    <option value="ENCONTRADO">Encontrados</option>
-                  </select>
                 </div>
 
 
@@ -528,14 +606,156 @@ async function openManualMatch() {
                   )}
                 </section>
 
-                                
+                      
+                {editingItem && (
+                  <section className="admin-card">
+                    <h2>Editar objeto: {editingItem.title}</h2>
 
+                    <form className="admin-form" onSubmit={saveEditedItem}>
+                      <label>
+                        Categoria
+                        <select
+                          required
+                          value={editForm.category_id}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              category_id: e.target.value,
+                            })
+                          }
+                        >
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        Nome do objeto
+                        <input
+                          required
+                          minLength={3}
+                          maxLength={150}
+                          value={editForm.title}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, title: e.target.value })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Local onde foi encontrado
+                        <input
+                          required
+                          value={editForm.location_name}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              location_name: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Data e hora
+                        <input
+                          required
+                          type="datetime-local"
+                          value={editForm.event_date}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              event_date: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label className="wide">
+                        Descrição
+                        <textarea
+                          required
+                          minLength={10}
+                          value={editForm.description}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label className="wide">
+                        Detalhes reservados
+                        <textarea
+                          value={editForm.secret_details}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              secret_details: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <div className="admin-actions">
+                        <button type="submit" disabled={busy}>
+                          Salvar alterações
+                        </button>
+
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  </section>
+                )}
+                          
+
+                                
                 <ItemTable
                   items={data?.items}
                   onSelect={(item) => {
                     navigate(`/funcionario/publicacoes?id=${encodeURIComponent(item.id)}`);
                   }}
+                  renderActions={(item) => {
+                    const canManage =
+                      currentUser?.role === "ADMIN" ||
+                      String(item.user_id) === String(currentUser?.id);
+
+                    if (!canManage) return null;
+
+                    return (
+                      <div className="admin-actions">
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => startEditItem(item)}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => removeStaffItem(item)}
+                          disabled={busy}
+                          style={{ background: "#c93845" }}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    );
+                  }}
                 />
+
 
                 </>
                 )}
@@ -630,14 +850,25 @@ async function openManualMatch() {
                                   .includes(manualSearch.toLowerCase())
                               )
                               .map((item) => (
-                                <div className="admin-row" key={item.id}>
-                                  <div>
+                                
+                              <div className="admin-row" key={item.id}>
+                                <div className="admin-item-summary">
+                                  {item.images?.[0]?.image_url && (
+                                    <div className="admin-item-thumbnail">
+                                      <img
+                                        src={imageUrl(item.images[0].image_url)}
+                                        alt={`Foto de ${item.title}`}
+                                        loading="lazy"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="admin-item-info">
                                     <b>{item.title}</b>
                                     <p>{item.location_name}</p>
-                                    <small>
-                                      {statusLabel(item.status)}
-                                    </small>
+                                    <small>{statusLabel(item.status)}</small>
                                   </div>
+                                </div>
+
 
                                   <button
                                     type="button"
@@ -679,9 +910,20 @@ async function openManualMatch() {
                       <p role="alert">{matchesError}</p>
                     ) : matches ? (
                       matches.items.length ? (
-                        matches.items.map((m) => (
-                          <div className="admin-row" key={m.matched_item_id}>
-                            <div>
+                      matches.items.map((m) => (
+                        <div className="admin-row" key={m.matched_item_id}>
+                          <div className="admin-item-summary">
+                            {m.matched_item_image_url && (
+                              <div className="admin-item-thumbnail">
+                                <img
+                                  src={imageUrl(m.matched_item_image_url)}
+                                  alt={`Foto de ${m.matched_item_title}`}
+                                  loading="lazy"
+                                />
+                              </div>
+                            )}
+
+                            <div className="admin-item-info">
                               <b>{m.matched_item_title}</b>
 
                               <p>{m.matched_item_description}</p>
@@ -691,6 +933,8 @@ async function openManualMatch() {
                                 {m.matched_item_location_name}
                               </small>
                             </div>
+                          </div>
+
 
                             <button
                               disabled={busy}
@@ -754,8 +998,6 @@ async function openManualMatch() {
                         try {
                           setBusy(true);
                           setError("");
-
-                          await claimService.startNegotiation(c.id);
 
                           setChatClaimId(c.id);
                         } catch (err) {
@@ -851,34 +1093,16 @@ function List({ rows, render }) {
 
 
 
-function ItemTable({ items, onSelect }) {
+function ItemTable({ items, onSelect, renderActions }) {
   return (
     <List
       rows={items}
       render={(item) => {
-        const foto = item.images?.[0];
-        const url = imageUrl(foto?.image_url || foto?.url);
+        
 
         return (
           <div className="admin-row" key={item.id}>
             <div className="admin-item-summary">
-              <div className="admin-item-thumbnail">
-                {url ? (
-                  <img
-                    src={url}
-                    alt={`Foto de ${item.title}`}
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      e.currentTarget.parentElement.classList.add(
-                        "admin-item-no-image"
-                      );
-                    }}
-                  />
-                ) : (
-                  <span>Sem foto</span>
-                )}
-              </div>
 
               <div className="admin-item-info">
                 <b>{item.title}</b>
@@ -892,12 +1116,16 @@ function ItemTable({ items, onSelect }) {
               </div>
             </div>
 
+            <div className="admin-actions">
             <button
               className="secondary"
               onClick={() => onSelect(item)}
             >
               Ver detalhes
             </button>
+
+            {renderActions?.(item)}
+          </div>
           </div>
         );
       }}

@@ -11,7 +11,7 @@ from uuid import UUID
 from rapidfuzz import fuzz
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy.orm import selectinload
 from app.models.item import Item
 from app.models.enums import ItemType, ItemStatus
 from app.schemas.match import MatchScoreDetails, MatchResultResponse
@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 class MatchingService:
     """Serviço de correspondência inteligente entre itens perdidos e encontrados"""
 
-    # Limiar mínimo de similaridade (65%) para considerar uma correspondência válida
-    MINIMUM_SIMILARITY_THRESHOLD = 65.0
+    # Limiar mínimo de similaridade (60%) para considerar uma correspondência válida
+    MINIMUM_SIMILARITY_THRESHOLD = 60.0
 
     # Pesos dos critérios (em percentagem)
     CATEGORY_WEIGHT = 30.0
@@ -37,6 +37,13 @@ class MatchingService:
     TEMPORAL_PROXIMITY_DECAY_DAYS = 30  # Decai até 0 em 30 dias
     GEOGRAPHICAL_PROXIMITY_MAX_KM = 1  # Pontuação máxima até 1 km
     GEOGRAPHICAL_PROXIMITY_DECAY_KM = 15  # Decai até 0 em 15 km
+
+    '''Critério	Peso máximo
+    Categoria do objeto	30%
+    Semelhança entre título e descrição	40%
+    Proximidade das datas	15%
+    Proximidade dos locais	15%
+    Total	100%'''
 
     @staticmethod
     def _normalize_text(text: str) -> str:
@@ -293,13 +300,19 @@ class MatchingService:
             candidate_status = ItemStatus.ENCONTRADO
 
         # Query para buscar candidatos
-        query = select(Item).where(
-            and_(
-                Item.type == candidate_type,
-                Item.status == candidate_status,
-                Item.id != item_id,  # Exclui o próprio item
+        
+        query = (
+            select(Item)
+            .options(selectinload(Item.images))
+            .where(
+                and_(
+                    Item.type == candidate_type,
+                    Item.status == candidate_status,
+                    Item.id != item_id,
+                )
             )
         )
+
 
         result = await db.execute(query)
         candidate_items = result.scalars().all()
@@ -320,6 +333,7 @@ class MatchingService:
                     "similarity_score": score,
                     "matched_item_title": candidate.title,
                     "matched_item_description": candidate.description,
+                    "matched_item_image_url": (candidate.images[0].image_url if candidate.images else None),
                     "matched_item_location_name": candidate.location_name,
                     "matched_item_event_date": candidate.event_date.isoformat(),
                     "matched_item_type": candidate.type.value,
