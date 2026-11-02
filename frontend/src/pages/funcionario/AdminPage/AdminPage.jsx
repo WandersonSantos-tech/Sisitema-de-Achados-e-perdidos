@@ -763,7 +763,10 @@ async function removeStaffItem(item) {
                 {secao === "correspondencias" && (
                   <>
                     <p className="admin-hint">
-                      <NavLink to="/funcionario/solicitacoes">
+                      <NavLink
+                        to="/funcionario/solicitacoes"
+                        className="admin-action-link"
+                      >
                         Abrir solicitações e conversas
                       </NavLink>
                     </p>

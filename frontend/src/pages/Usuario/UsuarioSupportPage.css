@@ -160,3 +160,70 @@
   outline: 3px solid var(--blue-400);
   outline-offset: 3px;
 }
+
+
+
+/* ONDETÁ - AÇÕES DA CENTRAL DE AJUDA */
+
+.support-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.support-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.support-help-btn-primary {
+  background: #1554b4;
+  color: #ffffff;
+  border: 1px solid #1554b4;
+}
+
+.support-help-btn-primary:hover {
+  background: #0d3f8f;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.support-help-btn-secondary {
+  background: #ffffff;
+  color: #1554b4;
+  border: 1px solid #c9d9ee;
+}
+
+.support-help-btn-secondary:hover {
+  background: #eff6ff;
+  border-color: #1554b4;
+  color: #0d3f8f;
+}
+
+.support-help-btn:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .support-help-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-help-btn {
+    width: 100%;
+  }
+}

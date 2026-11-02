@@ -65,13 +65,28 @@ export default function UsuarioSupportPage() {
               encaminhar correspondências; consulte as notificações e
               solicitações para conversar sobre a devolução.
             </p>
-            <Link to="/usuario/item-perdido">Cadastrar item perdido</Link>
-            <p>
-              <Link to="/usuario/notificacoes">Ver notificações</Link>
-            </p>
-            <p>
-              <Link to="/usuario/solicitacoes">Acompanhar solicitações</Link>
-            </p>
+            <div className="support-help-actions">
+            <Link
+              className="support-help-btn support-help-btn-primary"
+              to="/usuario/item-perdido"
+            >
+              Cadastrar item perdido
+            </Link>
+
+            <Link
+              className="support-help-btn support-help-btn-secondary"
+              to="/usuario/notificacoes"
+            >
+              Ver notificações
+            </Link>
+
+            <Link
+              className="support-help-btn support-help-btn-secondary"
+              to="/usuario/solicitacoes"
+            >
+              Acompanhar solicitações
+            </Link>
+          </div>
           </section>
         )}
         <footer>

@@ -600,3 +600,158 @@
     letter-spacing: -1px;
   }
 }
+
+/* =========================================
+   ONDETÁ - BOTÕES DE EDIÇÃO DO OBJETO
+========================================= */
+
+.item-edit-button,
+.item-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Editar objeto */
+.item-edit-button {
+  background: #1554b4;
+  color: #ffffff;
+  border: 1px solid #1554b4;
+}
+
+.item-edit-button:hover {
+  background: #0d3f8f;
+  transform: translateY(-1px);
+}
+
+/* Fechar edição */
+.item-edit-button-cancel {
+  background: #ffffff;
+  color: #1554b4;
+  border: 1px solid #1554b4;
+}
+
+.item-edit-button-cancel:hover {
+  background: #eff6ff;
+}
+
+/* Salvar alterações */
+.item-save-button {
+  background: #1554b4;
+  color: #ffffff;
+  border: 1px solid #1554b4;
+  margin-top: 12px;
+}
+
+.item-save-button:hover:not(:disabled) {
+  background: #0d3f8f;
+  transform: translateY(-1px);
+}
+
+.item-save-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.item-edit-button:focus-visible,
+.item-save-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+
+/* ========================================
+   ONDETÁ - FORMULÁRIO DE EDIÇÃO DO OBJETO
+======================================== */
+
+.item-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  margin-top: 26px;
+}
+
+.item-edit-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+}
+
+.item-edit-field label {
+  display: block;
+  margin: 0;
+  color: #0b1f3a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.item-edit-field input,
+.item-edit-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #dce5f0;
+  border-radius: 11px;
+  background: #f8fbff;
+  color: #0b1f3a;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.item-edit-field input:focus,
+.item-edit-field textarea:focus {
+  border-color: #1766c2;
+  box-shadow: 0 0 0 3px rgba(23, 102, 194, 0.12);
+  background: #ffffff;
+}
+
+.item-edit-field textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+.item-edit-field input::placeholder,
+.item-edit-field textarea::placeholder {
+  color: #94a3b8;
+}
+
+.item-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.item-edit-actions .item-save-button {
+  margin-top: 0;
+  min-height: 46px;
+  padding: 12px 24px;
+}
+
+@media (max-width: 600px) {
+  .item-edit-form {
+    gap: 18px;
+  }
+
+  .item-edit-actions .item-save-button {
+    width: 100%;
+  }
+}

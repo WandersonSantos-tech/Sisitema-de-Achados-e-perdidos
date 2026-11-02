@@ -304,6 +304,30 @@ async def update_item(
             detail="Item não encontrado ou acesso negado",
         )
 
+    # Impede editar objetos com correspondência disparada.
+    dispatch = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.lost_item_id == item.id)
+            | (MatchDispatch.found_item_id == item.id)
+        )
+    )
+
+    # Proteção adicional para solicitações existentes.
+    claim = await db.scalar(
+        select(Claim.id).where(
+            Claim.item_id == item.id
+        )
+    )
+
+    if dispatch is not None or claim is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não é possível editar este item, pois já existe "
+                "uma solicitação vinculada a ele."
+            ),
+        )
+
     if item_in.category_id is not None:
         item.category_id = item_in.category_id
     if item_in.title is not None:
@@ -321,9 +345,23 @@ async def update_item(
     if item_in.event_date is not None:
         item.event_date = item_in.event_date
 
+
     await db.commit()
 
-    return ItemResponse.model_validate(item)
+    result = await db.execute(
+        select(Item)
+        .options(
+            selectinload(Item.category),
+            selectinload(Item.images),
+        )
+        .where(Item.id == item.id)
+        .execution_options(populate_existing=True)
+    )
+
+    item_atualizado = result.scalar_one()
+
+    return ItemResponse.model_validate(item_atualizado)
+
 
 
 @router.delete(

@@ -91,6 +91,7 @@ function ItemDetalhePage() {
   }
 }
 
+  
   function pegarUrlImagem(imageUrl) {
     if (!imageUrl) return "";
 
@@ -101,8 +102,16 @@ function ItemDetalhePage() {
       return imageUrl;
     }
 
-    return `http://localhost:8000${imageUrl}`;
+    const apiUrl = (
+      import.meta.env.VITE_API_URL ||
+      "http://localhost:8000/api/v1"
+    ).replace(/\/+$/, "");
+
+    const baseUrl = apiUrl.replace(/\/api\/v1$/, "");
+
+    return `${baseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
   }
+
 
   if (carregando) {
     return (
@@ -358,21 +367,90 @@ function ItemDetalhePage() {
             </section>
 
             <section className="item-detalhe-card">
-              <button onClick={() => setEditando(!editando)}>{editando ? "Fechar edição" : "Editar objeto"}</button>
-              {editando && <form onSubmit={async (event) => {
-                event.preventDefault(); setSalvando(true);
-                const values = new FormData(event.currentTarget);
-                try {
-                  setItem(await itemService.atualizarItem(item.id, Object.fromEntries(values)));
-                  setEditando(false);
-                } catch (error) { alert(error.message); }
-                finally { setSalvando(false); }
-              }}>
-                <label>Nome<input name="title" required minLength={3} maxLength={150} defaultValue={item.title} /></label>
-                <label>Descrição<textarea name="description" required minLength={10} defaultValue={item.description} /></label>
-                <label>Local<input name="location_name" required maxLength={255} defaultValue={item.location_name} /></label>
-                <button disabled={salvando}>Salvar alterações</button>
-              </form>}
+              <button
+                type="button"
+                className={`item-edit-button ${editando ? "item-edit-button-cancel" : ""}`}
+                onClick={() => setEditando(!editando)}
+              >
+                {editando ? "Fechar edição" : "Editar objeto"}
+              </button>
+              
+              {editando && (
+                <form
+                  className="item-edit-form"
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    setSalvando(true);
+
+                    const values = new FormData(event.currentTarget);
+
+                    try {
+                      setItem(
+                        await itemService.atualizarItem(
+                          item.id,
+                          Object.fromEntries(values)
+                        )
+                      );
+                      setEditando(false);
+                    } catch (error) {
+                      alert(error.message);
+                    } finally {
+                      setSalvando(false);
+                    }
+                  }}
+                >
+                  <div className="item-edit-field">
+                    <label htmlFor="item-edit-title">Nome do objeto</label>
+                    <input
+                      id="item-edit-title"
+                      name="title"
+                      type="text"
+                      required
+                      minLength={3}
+                      maxLength={150}
+                      defaultValue={item.title}
+                      placeholder="Digite o nome do objeto"
+                    />
+                  </div>
+
+                  <div className="item-edit-field">
+                    <label htmlFor="item-edit-description">Descrição</label>
+                    <textarea
+                      id="item-edit-description"
+                      name="description"
+                      required
+                      minLength={10}
+                      defaultValue={item.description}
+                      placeholder="Descreva o objeto"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="item-edit-field">
+                    <label htmlFor="item-edit-location">Local</label>
+                    <input
+                      id="item-edit-location"
+                      name="location_name"
+                      type="text"
+                      required
+                      maxLength={255}
+                      defaultValue={item.location_name}
+                      placeholder="Informe o local"
+                    />
+                  </div>
+
+                  <div className="item-edit-actions">
+                    <button
+                      type="submit"
+                      className="item-save-button"
+                      disabled={salvando}
+                    >
+                      {salvando ? "Salvando..." : "Salvar alterações"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
             </section>
             <section className="item-danger-zone">
               <div className="item-danger-content">

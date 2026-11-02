@@ -1449,14 +1449,6 @@ async function carregarCorrespondenciasDoItem(item) {
         <div className="footer-links">
           <button
             onClick={() =>
-              navegar("/usuario/perfil")
-            }
-          >
-            Minha conta
-          </button>
-
-          <button
-            onClick={() =>
               navegar("/usuario/ajuda")
             }
           >

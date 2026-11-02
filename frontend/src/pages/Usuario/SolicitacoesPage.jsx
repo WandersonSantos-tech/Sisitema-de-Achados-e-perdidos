@@ -178,6 +178,7 @@ export default function SolicitacoesPage() {
             {!["REJEITADA", "CANCELADA"].includes(solicitacao.status) && (
             <button
               type="button"
+              className="ondeta-btn ondeta-btn-primary"
               onClick={() => abrirConversa(solicitacao)}
             >
               {conversaAberta === solicitacao.id
