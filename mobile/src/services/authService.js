@@ -1,52 +1,47 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiRequest } from "./api";
-
-const authService = {
+import { apiRequest, storage } from "./api";
+export const authService = {
   async login(email, password) {
-    // Enviando o campo como 'email' conforme exigido pelo schema do backend
     const data = await apiRequest("/auth/login", {
+      public: true,
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: email.trim(),
-        password: password,
-      }),
+      body: JSON.stringify({ email: email.trim(), password }),
     });
-
-    if (!data || !data.access_token) {
+    if (!data?.access_token)
       throw new Error("Token não recebido pelo servidor.");
-    }
-
-    await AsyncStorage.setItem("access_token", data.access_token);
-
-    const usuario = await this.getMe();
-
-    if (usuario) {
-      await AsyncStorage.setItem("user", JSON.stringify(usuario));
-    }
-
-    return {
-      token: data.access_token,
-      usuario,
-    };
-  },
-
-  async getMe() {
+    await storage.setToken(data.access_token);
     try {
-      const data = await apiRequest("/auth/me", { method: "GET" });
-      return data;
+      const usuario = await this.getMe();
+      if (usuario.role !== "USER" || !usuario.is_active)
+        throw new Error(
+          "Este aplicativo é exclusivo para usuários comuns ativos. Utilize a versão web para acesso de funcionário.",
+        );
+      return { usuario, token: data.access_token };
     } catch (error) {
-      console.error("Erro ao buscar perfil do usuário:", error);
-      return null;
+      await storage.clear();
+      throw error;
     }
   },
-
-  async logout() {
-    await AsyncStorage.removeItem("access_token");
-    await AsyncStorage.removeItem("user");
-  },
+  getMe: () => apiRequest("/auth/me"),
+  getCurrentUser: () => apiRequest("/auth/me"),
+  getUser: () => apiRequest("/auth/me"),
+  register: (data) =>
+    apiRequest("/auth/register", {
+      public: true,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  forgotPassword: (email) =>
+    apiRequest("/auth/forgot-password", {
+      public: true,
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token, new_password) =>
+    apiRequest("/auth/reset-password", {
+      public: true,
+      method: "POST",
+      body: JSON.stringify({ token, new_password }),
+    }),
+  logout: () => storage.clear(),
 };
-
 export default authService;
