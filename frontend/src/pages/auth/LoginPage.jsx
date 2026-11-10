@@ -37,17 +37,11 @@ function LoginPage() {
     try {
       setCarregando(true);
 
-<<<<<<< HEAD
-    // Login pela área de funcionário
-    if (modoFuncionario) {
-      if (!["ADMIN", "COLABORADOR"].includes(usuario.role)) {
-        authService.logout();
-=======
+      // Realiza a autenticação via authService
       const { usuario } = await authService.login(
         email.trim(),
         senha.trim()
       );
->>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
 
       if (!isMounted.current) return;
 
@@ -56,7 +50,7 @@ function LoginPage() {
       // Validação de acesso para a Área de Funcionário (ADMIN ou COLABORADOR)
       if (modoFuncionario) {
         if (role !== "ADMIN" && role !== "COLABORADOR") {
-          await authService.logout();
+          authService.logout();
           if (isMounted.current) {
             setErro("Esta conta não possui permissão de acesso à área operacional.");
             setCarregando(false);
@@ -68,19 +62,20 @@ function LoginPage() {
         return;
       }
 
-      // Validação para o Acesso Padrão de Usuário / Redirecionamentos Globais
+      // Validação para o Acesso Padrão do Usuário
       if (role === "USER") {
         navigate("/usuario/home", { replace: true });
         return;
       }
 
+      // Redirecionamento caso ADMIN ou COLABORADOR façam login pelo fluxo padrão
       if (role === "ADMIN" || role === "COLABORADOR") {
         navigate("/funcionario/dashboard", { replace: true });
         return;
       }
 
-      // Perfil não mapeado no sistema
-      await authService.logout();
+      // Perfil não reconhecido no sistema
+      authService.logout();
       if (isMounted.current) {
         setErro("Tipo de usuário não reconhecido pelo sistema.");
         setCarregando(false);
@@ -89,43 +84,12 @@ function LoginPage() {
     } catch (error) {
       if (isMounted.current) {
         setErro(
-          error?.response?.data?.detail ||
           error.message ||
           "Não foi possível realizar o acesso. Verifique suas credenciais."
         );
         setCarregando(false);
       }
     }
-<<<<<<< HEAD
-
-    // Login normal do usuário
-    if (usuario.role === "USER") {
-      navigate("/usuario/home");
-      return;
-    }
-
-    // Caso um ADMIN faça login pela tela normal
-    if (["ADMIN", "COLABORADOR"].includes(usuario.role)) {
-      navigate("/funcionario/dashboard");
-      return;
-    }
-
-    authService.logout();
-    setErro("Tipo de usuário não reconhecido.");
-
-  } catch (error) {
-    console.error("ERRO AO REALIZAR LOGIN:");
-    console.error(error);
-
-    setErro(
-      error.message ||
-        "Não foi possível realizar o acesso."
-    );
-
-  } finally {
-    setCarregando(false);
-=======
->>>>>>> 01461ae (Refatora fluxo de autenticacao e investigacao da dashboard do usuario)
   }
 
   function alterarModo() {

@@ -1,3 +1,4 @@
+from app.api.v1.endpoints.reviews import router as reviews_router, user_reviews_router
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,6 +13,8 @@ from app.api.v1.endpoints.categories import router as categories_router
 from app.api.v1.endpoints.claims import router as claims_router
 from app.api.v1.endpoints.messages import router as messages_router
 from app.api.v1.endpoints.admin import router as admin_router
+from app.api.v1.endpoints.integrations import router as integrations_router
+from app.api.v1.endpoints.security import router as security_router
 
 UPLOAD_PATH = Path(settings.UPLOAD_DIR).expanduser().resolve()
 UPLOAD_PATH.mkdir(parents=True, exist_ok=True)
@@ -41,6 +44,8 @@ app.include_router(categories_router, prefix=settings.API_V1_STR)
 app.include_router(claims_router, prefix=settings.API_V1_STR)
 app.include_router(messages_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
+app.include_router(integrations_router, prefix=settings.API_V1_STR)
+app.include_router(security_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health")
@@ -50,7 +55,7 @@ def health() -> dict[str, str]:
         "service": settings.PROJECT_NAME,
     }
 
+
 # Rotas adicionais importadas do backend remoto.
-from app.api.v1.endpoints.reviews import router as reviews_router, user_reviews_router
 app.include_router(reviews_router, prefix=settings.API_V1_STR)
 app.include_router(user_reviews_router, prefix=settings.API_V1_STR)

@@ -14,6 +14,7 @@ from app.models.user import User
 from app.schemas.token import PasswordResetConfirm, PasswordResetRequest, Token
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.services import auth_service
+from app.services.two_factor_service import verify_code
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,6 +33,23 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)) -> Any:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas",
         )
+
+    if user.is_two_factor_enabled:
+        if not user.two_factor_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="2FA habilitado, mas ausência de segredo do usuário.",
+            )
+        if not data.otp_code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Código 2FA obrigatório. Informe o campo otp_code no payload do login.",
+            )
+        if not verify_code(user.two_factor_secret, data.otp_code):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Código 2FA inválido ou expirado.",
+            )
 
     access_token_expires = timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

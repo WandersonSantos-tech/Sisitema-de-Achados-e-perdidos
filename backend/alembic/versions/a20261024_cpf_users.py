@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 
 revision = "a20261024_cpf_users"
-down_revision = "a20261017_flow"
+down_revision = "8407b0f13c5a"
 branch_labels = None
 depends_on = None
 
@@ -30,17 +30,26 @@ def gerar_cpf(base: int) -> str:
 
 
 def upgrade():
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = {col["name"] for col in inspector.get_columns("users")}
 
-
-    op.add_column(
-        "users",
-        sa.Column(
-            "cpf_provisorio",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.false()
+    if "cpf" not in columns:
+        op.add_column(
+            "users",
+            sa.Column("cpf", sa.String(length=11), nullable=True),
         )
-    )
+
+    if "cpf_provisorio" not in columns:
+        op.add_column(
+            "users",
+            sa.Column(
+                "cpf_provisorio",
+                sa.Boolean(),
+                nullable=False,
+                server_default=sa.false(),
+            ),
+        )
 
     conexao = op.get_bind()
 
@@ -93,6 +102,8 @@ def upgrade():
         unique=True
     )
 
+
 def downgrade():
     op.drop_index("ix_users_cpf", table_name="users")
     op.drop_column("users", "cpf_provisorio")
+    op.drop_column("users", "cpf")

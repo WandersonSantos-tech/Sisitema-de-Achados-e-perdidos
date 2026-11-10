@@ -31,6 +31,7 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    otp_code: str | None = None
 
 
 class UserResponse(BaseModel):
@@ -44,4 +45,3 @@ class UserResponse(BaseModel):
     cpf: Optional[str] = None
 
     model_config = {"from_attributes": True}
-

@@ -28,6 +28,24 @@ class Settings(BaseSettings):
     SMTP_HOST: str = "mailpit"
     SMTP_PORT: int = 1025
     SMTP_FROM_EMAIL: EmailStr = "noreply@achados.com"
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_USE_TLS: bool = True
+    SMTP_TIMEOUT_SECONDS: int = 15
+
+    BREVO_API_KEY: str = ""
+    BREVO_API_URL: str = "https://api.brevo.com/v3"
+    BREVO_SENDER_NAME: str = "Achados e Perdidos"
+    BREVO_SENDER_EMAIL: EmailStr | str = "noreply@achados.com"
+
+    DSGNER_API_BASE_URL: str = ""
+    DSGNER_API_KEY: str = ""
+    DSGNER_TIMEOUT_SECONDS: int = 30
+    DSGNER_SIGNATURE_PATH: str = "/v1/signature-requests"
+    DSGNER_STATUS_PATH: str = "/v1/signature-requests/{signature_id}"
+
+    TWO_FACTOR_ISSUER: str = "Achados e Perdidos"
+    TWO_FACTOR_WINDOW: int = 1
 
     UPLOAD_DIR: str = "/app/uploads"
 

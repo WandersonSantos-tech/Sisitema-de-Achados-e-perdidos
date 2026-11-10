@@ -34,8 +34,9 @@ class User(Base, TimestampMixin):
         String(150), nullable=False, unique=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     cpf: Mapped[str | None] = mapped_column(
-    String(11), nullable=True, unique=True, index=True)
-    cpf_provisorio: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+        String(11), nullable=True, unique=True, index=True)
+    cpf_provisorio: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         sa.Enum(UserRole, name="user_role", native_enum=True,
@@ -45,10 +46,15 @@ class User(Base, TimestampMixin):
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False)
+    two_factor_secret: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, default=None)
+    is_two_factor_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False)
 
     items: Mapped[list[Item]] = relationship(
         back_populates="user", cascade="all, delete-orphan")
-    claims: Mapped[list[Claim]] = relationship(back_populates="requester", foreign_keys="Claim.requester_id")
+    claims: Mapped[list[Claim]] = relationship(
+        back_populates="requester", foreign_keys="Claim.requester_id")
     sent_messages: Mapped[list[Message]] = relationship(
         back_populates="sender",
         foreign_keys="Message.sender_id",
