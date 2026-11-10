@@ -8,6 +8,7 @@ from app.models.enums import (
     NotificationType,
     UserRole,
 )
+from app.models.item_image import ItemImage
 from app.models.item import Item
 from app.models.item_image import ItemImage
 from app.models.message import Message
@@ -15,6 +16,7 @@ from app.models.notification import Notification
 from app.models.review import Review
 from app.models.status_history import StatusHistory
 from app.models.user import User
+from app.models.match_dispatch import MatchDispatch
 
 __all__ = [
     "Base",
@@ -26,6 +28,7 @@ __all__ = [
     "ItemImage",
     "ItemStatus",
     "ItemType",
+    "MatchDispatch",
     "Message",
     "Notification",
     "NotificationType",

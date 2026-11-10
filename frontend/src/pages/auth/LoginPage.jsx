@@ -38,10 +38,7 @@ function LoginPage() {
       setCarregando(true);
 
       // Realiza a autenticação via authService
-      const { usuario } = await authService.login(
-        email.trim(),
-        senha.trim()
-      );
+      const { usuario } = await authService.login(email.trim(), senha.trim());
 
       if (!isMounted.current) return;
 

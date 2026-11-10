@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_staff, get_current_user, get_db
 from app.models.item import Item
+from app.models.match_dispatch import MatchDispatch
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
 from app.schemas.match import MatchListResponse, MatchResultResponse
+from app.models.claim import Claim
 from app.services.matching_service import matching_service
 from pathlib import Path
 import uuid
@@ -18,6 +20,7 @@ from fastapi import UploadFile, File
 from app.models.item_image import ItemImage
 from app.schemas.item import ItemImageResponse
 from app.core.config import settings
+from app.services.azure_blob_service import AzureBlobService
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -240,11 +243,41 @@ async def get_item_matches(
             detail="Item não encontrado ou acesso negado",
         )
 
-    matches = await matching_service.find_matches_for_item(db, item_id)
+    
+ 
+    result = await db.execute(
+        select(MatchDispatch)
+        .where(
+            MatchDispatch.lost_item_id == item_id,
+            MatchDispatch.recipient_id == current_user.id,
+        )
+        .order_by(MatchDispatch.created_at.desc())
+    )
+
+    dispatches = result.scalars().all()
+
+    from app.schemas.match import MatchScoreDetails
+
+  
+    items = [
+        MatchResultResponse(
+            item_id=item_id,
+            matched_item_id=dispatch.found_item_id,
+            similarity_score=dispatch.similarity_score,
+            is_manual=dispatch.is_manual,
+            matched_item_title="Objeto compatível",
+            matched_item_description="Detalhes protegidos até a validação",
+            matched_item_location_name="Informação protegida",
+            matched_item_event_date="",
+            matched_item_type="ENCONTRADO",
+            score_details=MatchScoreDetails(),
+        )
+        for dispatch in dispatches
+    ]
 
     return MatchListResponse(
-        total=len(matches),
-        items=[MatchResultResponse(**match) for match in matches],
+        total=len(items),
+        items=items,
     )
 
 
@@ -272,6 +305,30 @@ async def update_item(
             detail="Item não encontrado ou acesso negado",
         )
 
+    # Impede editar objetos com correspondência disparada.
+    dispatch = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.lost_item_id == item.id)
+            | (MatchDispatch.found_item_id == item.id)
+        )
+    )
+
+    # Proteção adicional para solicitações existentes.
+    claim = await db.scalar(
+        select(Claim.id).where(
+            Claim.item_id == item.id
+        )
+    )
+
+    if dispatch is not None or claim is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não é possível editar este item, pois já existe "
+                "uma solicitação vinculada a ele."
+            ),
+        )
+
     if item_in.category_id is not None:
         item.category_id = item_in.category_id
     if item_in.title is not None:
@@ -289,9 +346,23 @@ async def update_item(
     if item_in.event_date is not None:
         item.event_date = item_in.event_date
 
+
     await db.commit()
 
-    return ItemResponse.model_validate(item)
+    result = await db.execute(
+        select(Item)
+        .options(
+            selectinload(Item.category),
+            selectinload(Item.images),
+        )
+        .where(Item.id == item.id)
+        .execution_options(populate_existing=True)
+    )
+
+    item_atualizado = result.scalar_one()
+
+    return ItemResponse.model_validate(item_atualizado)
+
 
 
 @router.delete(
@@ -321,9 +392,36 @@ async def delete_item(
             detail="Item não encontrado ou acesso negado",
         )
 
+    
+    # Impede excluir objetos vinculados a uma
+    # correspondência enviada pela equipe.
+    dispatch = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.lost_item_id == item.id)
+            | (MatchDispatch.found_item_id == item.id)
+        )
+    )
+
+    # Proteção adicional para solicitações já existentes.
+    claim = await db.scalar(
+        select(Claim.id).where(
+            Claim.item_id == item.id
+        )
+    )
+
+    if dispatch is not None or claim is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não é possível excluir este item, pois já existe "
+                "uma solicitação de correspondência vinculada a ele."
+            ),
+        )
+
     await db.delete(item)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post(
     "/{item_id}/images",
@@ -434,8 +532,20 @@ async def upload_item_images(
                 detail="Cada imagem pode ter no máximo 5 MB.",
             )
 
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+        blob_name = f"items/{item_id}/{filename}"
+
+        try:
+            blob_service = AzureBlobService()
+            blob_service.upload(
+                blob_name=blob_name,
+                content=content,
+                content_type=file.content_type,
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Não foi possível salvar a imagem no Azure Storage.",
+            ) from exc
 
         image_url = (
             f"/uploads/items/"

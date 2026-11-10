@@ -1,0 +1,44 @@
+
+name: Build OndeTa Azure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ca6bf0f7b28dacr.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build e Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ca6bf0f7b28dacr.azurecr.io/ondeta-backend:git-${{ github.sha }}
+
+      - name: Build e Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=https://api-ondeta-5170584.wonderfulstone-40977343.canadacentral.azurecontainerapps.io/api/v1
+          tags: ca6bf0f7b28dacr.azurecr.io/ondeta-frontend:git-${{ github.sha }}

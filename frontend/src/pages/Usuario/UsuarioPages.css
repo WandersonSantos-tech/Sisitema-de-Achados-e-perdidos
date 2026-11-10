@@ -362,3 +362,41 @@
   .usuario-page-content { padding: 16px; }
   p, h1, h2, h3 { overflow-wrap: anywhere; }
 }
+
+/* Botões reutilizáveis do OndeTá */
+
+.ondeta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.ondeta-btn-primary {
+  background: #1554b4;
+  color: #ffffff;
+}
+
+.ondeta-btn-primary:hover:not(:disabled) {
+  background: #0d3f8f;
+  transform: translateY(-1px);
+}
+
+.ondeta-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ondeta-btn:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}

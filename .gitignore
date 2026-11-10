@@ -1,6 +1,19 @@
-achados e perdidos/mobile/.expo/
-achados e perdidos/backend/test_prompt6.sh
+# ambiente local
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# pastas geradas
+__pycache__/
+*.pyc
 backend_temp/
-backend/venv/
-backend/.env
+backend/.venv/
+backend/__pycache__/
+backend/uploads/*
+!backend/uploads/.gitkeep
 mobile/.expo/
+
+# estrutura do projeto
+achados e perdidos/

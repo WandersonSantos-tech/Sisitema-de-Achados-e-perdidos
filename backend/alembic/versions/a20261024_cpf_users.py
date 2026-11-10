@@ -30,29 +30,33 @@ def gerar_cpf(base: int) -> str:
 
 
 def upgrade():
-    bind = op.get_bind()
-    inspector = sa.inspect(bind)
-    columns = {col["name"] for col in inspector.get_columns("users")}
+    conexao = op.get_bind()
+    inspetor = sa.inspect(conexao)
 
-    if "cpf" not in columns:
+    colunas = {
+        coluna["name"]
+        for coluna in inspetor.get_columns("users")
+    }
+
+    # Cria CPF somente se ainda não existir.
+    if "cpf" not in colunas:
         op.add_column(
             "users",
-            sa.Column("cpf", sa.String(length=11), nullable=True),
+            sa.Column("cpf", sa.String(11), nullable=True)
         )
 
-    if "cpf_provisorio" not in columns:
+    if "cpf_provisorio" not in colunas:
         op.add_column(
             "users",
             sa.Column(
                 "cpf_provisorio",
                 sa.Boolean(),
                 nullable=False,
-                server_default=sa.false(),
-            ),
+                server_default=sa.false()
+            )
         )
 
-    conexao = op.get_bind()
-
+    # Preenche CPFs provisórios para usuários antigos que estão sem CPF
     usuarios = conexao.execute(
         sa.text(
             "SELECT id FROM users WHERE cpf IS NULL ORDER BY id"
@@ -95,15 +99,47 @@ def upgrade():
 
         usados.add(cpf)
 
-    op.create_index(
-        "ix_users_cpf",
-        "users",
-        ["cpf"],
-        unique=True
+    # Evita criar outro índice se CPF já possui restrição UNIQUE.
+    indices = sa.inspect(conexao).get_indexes("users")
+    restricoes = sa.inspect(conexao).get_unique_constraints("users")
+
+    cpf_ja_unico = any(
+        indice.get("unique")
+        and indice.get("column_names") == ["cpf"]
+        for indice in indices
+    ) or any(
+        restricao.get("column_names") == ["cpf"]
+        for restricao in restricoes
     )
+
+    if not cpf_ja_unico:
+        op.create_index(
+            "ix_users_cpf",
+            "users",
+            ["cpf"],
+            unique=True
+        )
 
 
 def downgrade():
-    op.drop_index("ix_users_cpf", table_name="users")
-    op.drop_column("users", "cpf_provisorio")
-    op.drop_column("users", "cpf")
+    conexao = op.get_bind()
+    inspetor = sa.inspect(conexao)
+
+    indices = {
+        indice["name"]
+        for indice in inspetor.get_indexes("users")
+    }
+
+    if "ix_users_cpf" in indices:
+        op.drop_index("ix_users_cpf", table_name="users")
+
+    colunas = {
+        coluna["name"]
+        for coluna in inspetor.get_columns("users")
+    }
+
+    if "cpf_provisorio" in colunas:
+        op.drop_column("users", "cpf_provisorio")
+
+    if "cpf" in colunas:
+        op.drop_column("users", "cpf")

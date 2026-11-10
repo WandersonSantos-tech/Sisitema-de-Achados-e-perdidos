@@ -1,8 +1,10 @@
+import { useAuth } from "../../contexts/AuthContext";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,9 +15,8 @@ import {
 import { authService } from "../../services/authService";
 
 export default function RedefinirSenhaScreen({ navigation, route }) {
-  const [token, setToken] = useState(
-    route?.params?.token || ""
-  );
+  const { user, logout } = useAuth();
+  const [token, setToken] = useState(route?.params?.token || "");
 
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
@@ -23,28 +24,23 @@ export default function RedefinirSenhaScreen({ navigation, route }) {
 
   async function redefinirSenha() {
     if (!token.trim()) {
-      Alert.alert(
-        "Atenção",
-        "Informe o token de recuperação."
-      );
+      Alert.alert("Atenção", "Informe o token de recuperação.");
 
       return;
     }
 
     if (!novaSenha.trim() || !confirmarSenha.trim()) {
-      Alert.alert(
-        "Atenção",
-        "Preencha os campos de senha."
-      );
+      Alert.alert("Atenção", "Preencha os campos de senha.");
 
       return;
     }
 
+    if (novaSenha.length < 8) {
+      Alert.alert("Atenção", "A senha deve ter pelo menos 8 caracteres.");
+      return;
+    }
     if (novaSenha !== confirmarSenha) {
-      Alert.alert(
-        "Atenção",
-        "As senhas não são iguais."
-      );
+      Alert.alert("Atenção", "As senhas não são iguais.");
 
       return;
     }
@@ -52,34 +48,29 @@ export default function RedefinirSenhaScreen({ navigation, route }) {
     try {
       setCarregando(true);
 
-      await authService.resetPassword(
-        token.trim(),
-        novaSenha
-      );
+      await authService.resetPassword(token.trim(), novaSenha);
 
-      Alert.alert(
-        "Senha alterada",
-        "Sua senha foi redefinida com sucesso.",
-        [
-          {
-            text: "Entrar",
-            onPress: () =>
-              navigation.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: "Login",
-                  },
-                ],
-              }),
+      Alert.alert("Senha alterada", "Sua senha foi redefinida com sucesso.", [
+        {
+          text: "Entrar",
+          onPress: async () => {
+            if (user) {
+              await logout();
+              return;
+            }
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "Login",
+                },
+              ],
+            });
           },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
-      Alert.alert(
-        "Não foi possível alterar a senha",
-        error.message
-      );
+      Alert.alert("Não foi possível alterar a senha", error.message);
     } finally {
       setCarregando(false);
     }
@@ -87,80 +78,72 @@ export default function RedefinirSenhaScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.container}
         >
-          <Text style={styles.back}>
-            Voltar
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>
-          Redefinir senha
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Informe o código de recuperação e escolha sua nova senha.
-        </Text>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>
-            Código de recuperação
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Digite o token"
-            placeholderTextColor="#94A3B8"
-            value={token}
-            onChangeText={setToken}
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>
-            Nova senha
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Digite sua nova senha"
-            placeholderTextColor="#94A3B8"
-            value={novaSenha}
-            onChangeText={setNovaSenha}
-            secureTextEntry
-          />
-
-          <Text style={styles.label}>
-            Confirmar nova senha
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Digite a senha novamente"
-            placeholderTextColor="#94A3B8"
-            value={confirmarSenha}
-            onChangeText={setConfirmarSenha}
-            secureTextEntry
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={redefinirSenha}
-            disabled={carregando}
-          >
-            {carregando ? (
-              <ActivityIndicator
-                color="#FFFFFF"
-              />
-            ) : (
-              <Text style={styles.buttonText}>
-                Alterar senha
-              </Text>
-            )}
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.back}>Voltar</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+
+          <Text style={styles.title}>Redefinir senha</Text>
+
+          <Text style={styles.subtitle}>
+            Informe o código de recuperação e escolha sua nova senha.
+          </Text>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>Código de recuperação</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Digite o token"
+              placeholderTextColor="#94A3B8"
+              value={token}
+              onChangeText={setToken}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.label}>Nova senha</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Digite sua nova senha"
+              placeholderTextColor="#94A3B8"
+              value={novaSenha}
+              onChangeText={setNovaSenha}
+              secureTextEntry
+            />
+
+            <Text style={styles.label}>Confirmar nova senha</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Digite a senha novamente"
+              placeholderTextColor="#94A3B8"
+              value={confirmarSenha}
+              onChangeText={setConfirmarSenha}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={redefinirSenha}
+              disabled={carregando}
+            >
+              {carregando ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Alterar senha</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -172,7 +155,7 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 35,
   },

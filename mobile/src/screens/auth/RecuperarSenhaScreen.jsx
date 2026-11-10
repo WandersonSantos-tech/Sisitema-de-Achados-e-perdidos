@@ -1,8 +1,9 @@
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,39 +12,27 @@ import {
 } from "react-native";
 import { authService } from "../../services/authService";
 
-export default function RecuperarSenhaScreen({
-  navigation,
-}) {
-  const [email, setEmail] =
-    useState("");
-  const [loading, setLoading] =
-    useState(false);
+export default function RecuperarSenhaScreen({ navigation }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function enviar() {
     if (!email.trim()) {
-      Alert.alert(
-        "Atenção",
-        "Informe seu e-mail."
-      );
+      Alert.alert("Atenção", "Informe seu e-mail.");
       return;
     }
 
     try {
       setLoading(true);
 
-      await authService.forgotPassword(
-        email.trim()
-      );
+      await authService.forgotPassword(email.trim());
 
       Alert.alert(
         "Solicitação enviada",
-        "Confira seu e-mail para continuar a recuperação da senha."
+        "Confira seu e-mail para continuar a recuperação da senha.",
       );
     } catch (error) {
-      Alert.alert(
-        "Erro",
-        error.message
-      );
+      Alert.alert("Erro", error.message);
     } finally {
       setLoading(false);
     }
@@ -51,128 +40,122 @@ export default function RecuperarSenhaScreen({
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          onPress={() =>
-            navigation.goBack()
-          }
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.container}
         >
-          <Text style={styles.back}>
-            Voltar
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>
-          Recuperar senha
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Informe o e-mail cadastrado
-          na sua conta.
-        </Text>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>
-            E-mail
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="seuemail@exemplo.com"
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={enviar}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator
-                color="#FFFFFF"
-              />
-            ) : (
-              <Text
-                style={
-                  styles.buttonText
-                }
-              >
-                Enviar recuperação
-              </Text>
-            )}
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.back}>Voltar</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+
+          <Text style={styles.title}>Recuperar senha</Text>
+
+          <Text style={styles.subtitle}>
+            Informe o e-mail cadastrado na sua conta.
+          </Text>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>E-mail</Text>
+
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="seuemail@exemplo.com"
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={enviar}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Enviar recuperação</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("RedefinirSenha")}
+              style={{ paddingVertical: 18 }}
+            >
+              <Text style={styles.back}>Já tenho o código de recuperação</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const styles =
-  StyleSheet.create({
-    safe: {
-      flex: 1,
-      backgroundColor: "#F4F7FB",
-    },
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#F4F7FB",
+  },
 
-    container: {
-      flex: 1,
-      padding: 24,
-      paddingTop: 40,
-    },
+  container: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 40,
+  },
 
-    back: {
-      color: "#1468D8",
-      fontWeight: "800",
-      marginBottom: 45,
-    },
+  back: {
+    color: "#1468D8",
+    fontWeight: "800",
+    marginBottom: 45,
+  },
 
-    title: {
-      fontSize: 34,
-      fontWeight: "900",
-      color: "#061A40",
-    },
+  title: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#061A40",
+  },
 
-    subtitle: {
-      color: "#64748B",
-      marginTop: 10,
-      marginBottom: 30,
-    },
+  subtitle: {
+    color: "#64748B",
+    marginTop: 10,
+    marginBottom: 30,
+  },
 
-    card: {
-      backgroundColor: "#FFFFFF",
-      borderRadius: 24,
-      padding: 22,
-    },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 22,
+  },
 
-    label: {
-      fontWeight: "700",
-      color: "#334155",
-      marginBottom: 8,
-    },
+  label: {
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 8,
+  },
 
-    input: {
-      height: 56,
-      borderWidth: 1,
-      borderColor: "#DCE6F2",
-      backgroundColor: "#F8FBFF",
-      borderRadius: 14,
-      paddingHorizontal: 15,
-      marginBottom: 20,
-    },
+  input: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: "#DCE6F2",
+    backgroundColor: "#F8FBFF",
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
 
-    button: {
-      height: 56,
-      backgroundColor: "#0B5CC6",
-      borderRadius: 14,
-      justifyContent: "center",
-      alignItems: "center",
-    },
+  button: {
+    height: 56,
+    backgroundColor: "#0B5CC6",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-    buttonText: {
-      color: "#FFFFFF",
-      fontWeight: "900",
-    },
-  });
+  buttonText: {
+    color: "#FFFFFF",
+    fontWeight: "900",
+  },
+});

@@ -1,11 +1,14 @@
 from app.api.v1.endpoints.reviews import router as reviews_router, user_reviews_router
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response as FileResponse
+from azure.core.exceptions import ResourceNotFoundError, AzureError
+import asyncio
 
 from app.core.config import settings
+from app.services.azure_blob_service import AzureBlobService
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.items import router as items_router
 from app.api.v1.endpoints.notifications import router as notifications_router
@@ -15,6 +18,7 @@ from app.api.v1.endpoints.messages import router as messages_router
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.integrations import router as integrations_router
 from app.api.v1.endpoints.security import router as security_router
+
 
 UPLOAD_PATH = Path(settings.UPLOAD_DIR).expanduser().resolve()
 UPLOAD_PATH.mkdir(parents=True, exist_ok=True)
@@ -34,7 +38,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
+
+@app.get("/uploads/{blob_path:path}", include_in_schema=False)
+async def get_uploaded_image(blob_path: str):
+    if not blob_path.startswith("items/") or ".." in blob_path.split("/"):
+        raise HTTPException(status_code=404, detail="Imagem não encontrada.")
+
+    try:
+        service = AzureBlobService()
+
+        content = await asyncio.to_thread(service.download, blob_path)
+
+        extension = Path(blob_path).suffix.lower()
+        content_types = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+        }
+
+        return FileResponse(
+            content=content,
+            media_type=content_types.get(
+                extension, "application/octet-stream"),
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    except ResourceNotFoundError:
+        raise HTTPException(status_code=404, detail="Imagem não encontrada.")
+    except AzureError:
+        raise HTTPException(
+            status_code=503, detail="Armazenamento indisponível.")
+
 
 # Registrar routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)

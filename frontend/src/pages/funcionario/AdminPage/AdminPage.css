@@ -540,3 +540,28 @@
   border-radius: 22px;
   background: #f4f7fb;
 }
+
+.admin-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: #1554b4;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.admin-action-link:hover {
+  background: #0d3f8f;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.admin-action-link:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}

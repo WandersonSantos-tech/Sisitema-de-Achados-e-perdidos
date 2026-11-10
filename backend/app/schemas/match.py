@@ -22,6 +22,7 @@ class MatchResultResponse(BaseModel):
     """DTO para exibir correspondência encontrada"""
     item_id: uuid.UUID
     matched_item_id: uuid.UUID
+    is_manual: bool = False
     similarity_score: float = Field(
         ge=0.0, le=100.0, description="Score de similaridade total (0-100%)")
     matched_item_title: str
@@ -29,6 +30,7 @@ class MatchResultResponse(BaseModel):
     matched_item_location_name: str
     matched_item_event_date: str
     matched_item_type: str
+    matched_item_image_url: str | None = None
     score_details: MatchScoreDetails
 
     model_config = {"from_attributes": True}

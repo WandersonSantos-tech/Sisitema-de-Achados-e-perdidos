@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import func, or_, select
@@ -13,17 +13,21 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_admin, get_current_staff, get_db
 from app.models.category import Category
 from app.models.claim import Claim
+from app.models.match_dispatch import MatchDispatch
 from app.models.enums import ItemStatus, ItemType, NotificationType, ClaimStatus, UserRole
 from app.models.item import Item
 from app.models.notification import Notification
 from app.models.status_history import StatusHistory
 from app.models.user import User
+from app.schemas.item import ItemUpdate
 from app.schemas.admin import CategoryCreate, CategoryUpdate
 from app.schemas.claim import ClaimDetailResponse
 from app.schemas.item import ItemListResponse, ItemResponse
 from app.services.moderation_service import remove_publication
 from app.services.matching_service import matching_service
 from app.schemas.user import UserResponse
+from pydantic import field_validator
+from app.core.cpf import limpar_cpf, validar_cpf
 from app.core.security import hash_password
 
 
@@ -368,6 +372,40 @@ async def send_match(
 
     if found.user_id == lost.user_id:
         raise HTTPException(400, "Não é possível encaminhar correspondência para o próprio objeto")
+    
+    # Recupera a compatibilidade calculada pelo algoritmo.
+    # Se o par não for uma sugestão válida, trata como manual.
+    suggestions = await matching_service.find_matches_for_item(
+        db, found.id
+    )
+
+    suggestion = next(
+        (
+            match
+            for match in suggestions
+            if match["matched_item_id"] == lost.id
+        ),
+        None,
+    )
+
+    score = (
+        float(suggestion["similarity_score"])
+        if suggestion is not None
+        else 0.0
+    )
+
+    # Registra a correspondência efetivamente enviada.
+    db.add(
+        MatchDispatch(
+            found_item_id=found.id,
+            lost_item_id=lost.id,
+            recipient_id=lost.user_id,
+            sent_by_id=staff.id,
+            similarity_score=score,
+            is_manual=suggestion is None,
+        )
+    )
+
     claim = await db.scalar(select(Claim).where(
         Claim.item_id == found.id, Claim.requester_id == lost.user_id,
         Claim.status.in_((ClaimStatus.CORRESPONDENCIA, ClaimStatus.PENDENTE, ClaimStatus.APROVADA))))
@@ -389,25 +427,31 @@ async def send_match(
         )
     )
 
-    if found.status != ItemStatus.ENCONTRADO:
-        previous_status = found.status
-        found.status = ItemStatus.ENCONTRADO
+    
+
+    if lost.status == ItemStatus.PERDIDO:
+        previous_status = lost.status
+        lost.status = ItemStatus.ENCONTRADO
 
         db.add(
             StatusHistory(
-                item_id=found.id,
+                item_id=lost.id,
                 changed_by=staff.id,
                 previous_status=previous_status,
                 new_status=ItemStatus.ENCONTRADO,
-                note="Correspondência enviada ao usuário",
+                note=(
+                    "Correspondência encaminhada pela equipe "
+                    f"com o objeto encontrado {found.id}"
+                ),
             )
         )
+
 
     await db.commit()
 
     return {
         "message": "Correspondência enviada ao usuário",
-        "item_status": found.status.value,
+        "item_status": lost.status.value,
     }
 
 
@@ -717,20 +761,123 @@ async def remove_item(item_id: UUID, body: RemovalInput, db: AsyncSession = Depe
     return ItemResponse.model_validate(await get_item_or_404(db, item_id))
 
 
+
 class StaffCreate(BaseModel):
     name: str
     email: str
+    cpf: str = Field(..., min_length=11, max_length=14)
     phone: str | None = None
     password: str = Field(..., min_length=8)
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf_funcionario(cls, valor: str) -> str:
+        cpf = limpar_cpf(valor)
+        if not validar_cpf(cpf):
+            raise ValueError("CPF inválido")
+        return cpf
+
 @router.post("/staff", response_model=UserResponse, status_code=201)
-async def create_staff(body: StaffCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
-    user = User(name=body.name.strip(), email=str(body.email).lower(), phone=body.phone,
-                password_hash=hash_password(body.password), role=UserRole.COLABORADOR)
+async def create_staff(
+    body: StaffCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    user = User(
+        name=body.name.strip(),
+        email=body.email.lower(),
+        cpf=body.cpf,
+        cpf_provisorio=False,
+        phone=body.phone,
+        password_hash=hash_password(body.password),
+        role=UserRole.COLABORADOR
+    )
+
     db.add(user)
+
     try:
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(409, "E-mail já cadastrado")
+        raise HTTPException(
+            status_code=409,
+            detail="E-mail ou CPF já cadastrado"
+        )
+
     await db.refresh(user)
     return user
+
+
+@router.patch("/items/{item_id}/edit", response_model=ItemResponse)
+async def edit_staff_item(
+    item_id: UUID,
+    item_in: ItemUpdate,
+    db: AsyncSession = Depends(get_db),
+    staff: User = Depends(get_current_staff),
+):
+    item = await get_item_or_404(db, item_id)
+
+    if item.type != ItemType.ENCONTRADO or not item.internal_origin:
+        raise HTTPException(403, "Este objeto não pertence ao cadastro da equipe.")
+
+    if staff.role != UserRole.ADMIN and item.user_id != staff.id:
+        raise HTTPException(403, "Você só pode editar seus próprios objetos.")
+
+    linked = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.found_item_id == item.id) |
+            (MatchDispatch.lost_item_id == item.id)
+        )
+    )
+
+    if linked is not None:
+        raise HTTPException(
+            409,
+            "Este objeto já possui uma correspondência vinculada e não pode ser editado."
+        )
+
+    changes = item_in.model_dump(exclude_unset=True)
+
+    for field, value in changes.items():
+        setattr(item, field, value)
+
+    await db.commit()
+    await db.refresh(item)
+
+    return ItemResponse.model_validate(item)
+
+
+@router.delete("/items/{item_id}/delete", status_code=204)
+async def delete_staff_item(
+    item_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    staff: User = Depends(get_current_staff),
+):
+    item = await get_item_or_404(db, item_id)
+
+    if item.type != ItemType.ENCONTRADO or not item.internal_origin:
+        raise HTTPException(403, "Este objeto não pertence ao cadastro da equipe.")
+
+    if staff.role != UserRole.ADMIN and item.user_id != staff.id:
+        raise HTTPException(403, "Você só pode excluir seus próprios objetos.")
+
+    linked = await db.scalar(
+        select(MatchDispatch.id).where(
+            (MatchDispatch.found_item_id == item.id) |
+            (MatchDispatch.lost_item_id == item.id)
+        )
+    )
+
+    claim = await db.scalar(
+        select(Claim.id).where(Claim.item_id == item.id)
+    )
+
+    if linked is not None or claim is not None:
+        raise HTTPException(
+            409,
+            "Não é possível excluir este objeto, pois já existe uma correspondência ou solicitação vinculada a ele."
+        )
+
+    await db.delete(item)
+    await db.commit()
+    return Response(status_code=204)
