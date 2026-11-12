@@ -101,7 +101,7 @@ class BrevoEmailService:
         html_body: str | None = None,
         reply_to: str | None = None,
     ) -> dict[str, Any]:
-        """Fallback seguro por SMTP."""
+        """Fallback seguro por SMTP compatível com Mailpit."""
         msg = EmailMessage()
         msg["From"] = str(settings.SMTP_FROM_EMAIL)
         msg["To"] = to_email
@@ -113,17 +113,30 @@ class BrevoEmailService:
         if html_body:
             msg.add_alternative(html_body, subtype="html")
 
-        smtp = aiosmtplib.SMTP(
-            hostname=settings.SMTP_HOST,
-            port=int(settings.SMTP_PORT),
-            use_tls=bool(settings.SMTP_USE_TLS),
-            username=settings.SMTP_USERNAME,
-            password=settings.SMTP_PASSWORD,
-            timeout=settings.SMTP_TIMEOUT_SECONDS,
-        )
+        # Configuração segura para evitar comandos inválidos no Mailpit local
+        smtp_kwargs = {
+            "hostname": settings.SMTP_HOST,
+            "port": int(settings.SMTP_PORT),
+            "timeout": settings.SMTP_TIMEOUT_SECONDS,
+        }
+
+        # Só adiciona autenticação e TLS se explicitamente configurados e não for o Mailpit local
+        if settings.SMTP_HOST != "mailpit" and getattr(settings, "SMTP_USERNAME", None):
+            smtp_kwargs["username"] = settings.SMTP_USERNAME
+            smtp_kwargs["password"] = settings.SMTP_PASSWORD
+            smtp_kwargs["use_tls"] = bool(
+                getattr(settings, "SMTP_USE_TLS", False))
+        else:
+            smtp_kwargs["use_tls"] = False
+
+        smtp = aiosmtplib.SMTP(**smtp_kwargs)
 
         try:
             await smtp.connect()
+            # Se houver credenciais configuradas para um servidor real, faz o login
+            if settings.SMTP_HOST != "mailpit" and getattr(settings, "SMTP_USERNAME", None):
+                await smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+
             await smtp.send_message(msg)
             audit_logger.log_event(
                 "AUDIT_EMAIL_SENT",
