@@ -68,10 +68,17 @@ async def test_db_engine():
     # Criar todas as tabelas
     async with engine.begin() as conn:
         # Remover índices duplicados se existirem
-        await conn.run_sync(lambda c: c.execute("PRAGMA foreign_keys=OFF"))
+        await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        await conn.run_sync(lambda c: c.execute("PRAGMA foreign_keys=ON"))
+        await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+    yield engine
+    await engine.dispose()
+    shutil.rmtree(temp_dir)
+
+
+@pytest_asyncio.fixture
+async def test_db_session(test_db_engine):
     async_session = async_sessionmaker(
         test_db_engine,
         class_=AsyncSession,

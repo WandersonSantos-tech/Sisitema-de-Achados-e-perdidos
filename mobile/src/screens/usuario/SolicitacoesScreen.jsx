@@ -1,3 +1,4 @@
+import ReturnSignatureStatus from "../../components/ReturnSignatureStatus";
 import React, {
   useEffect,
   useLayoutEffect,
@@ -973,6 +974,7 @@ export default function SolicitacoesScreen({ navigation }) {
                           )}
                     </Txt>
 
+                    {!!solicitacao.pickup_at && !solicitacao.returned_at && <ReturnSignatureStatus claimId={solicitacao.id} />}
                     {!!solicitacao.pickup_at && (
                       <Txt style={styles.paragraph}>
                         Retirada agendada:{" "}

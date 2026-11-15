@@ -51,6 +51,7 @@ export default function UsuarioSupportPage() {
                   catch (error) { setError(error.message); }
                 }}>Minhas avaliações recebidas</button>
                 {reviews && <p>{reviews.total_reviews} avaliações · Média: {reviews.average_rating ?? "Sem notas"}</p>}
+                <Link to="/seguranca">Configurar 2FA</Link>
                 <Link to="/recuperar-senha">Recuperar senha</Link>
               </>
             ) : (

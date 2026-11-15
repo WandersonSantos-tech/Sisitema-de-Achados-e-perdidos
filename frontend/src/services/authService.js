@@ -6,16 +6,14 @@ const FORGOT_PASSWORD_ENDPOINT = "/auth/forgot-password";
 const RESET_PASSWORD_ENDPOINT = "/auth/reset-password";
 
 export const authService = {
-  async login(email, senha) {
-    const data = await apiRequest(LOGIN_ENDPOINT, {
+  async login(email, senha, challengeToken = null, code = null) {
+    const data = await apiRequest(challengeToken ? "/auth/2fa/verify" : LOGIN_ENDPOINT, {
       method: "POST",
 
-      body: JSON.stringify({
-        email,
-        password: senha,
-      }),
+      body: JSON.stringify(challengeToken ? { challenge_token: challengeToken, code } : { email, password: senha }),
     });
 
+    if (data.requires_2fa) { this.logout(); return data; }
     const token = data.access_token;
 
     if (!token) {

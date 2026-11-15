@@ -4,6 +4,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response as FileResponse
+from fastapi.responses import JSONResponse
+from app.services.two_factor_service import TwoFactorServiceError
 from azure.core.exceptions import ResourceNotFoundError, AzureError
 import asyncio
 
@@ -30,9 +32,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+
+@app.exception_handler(TwoFactorServiceError)
+async def two_factor_unavailable(request, exc):
+    return JSONResponse(status_code=503, content={"detail": "2FA indisponível. Verifique a chave de criptografia do backend."})
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,12 +1,14 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./DevolucaoFlow.css";
 import { claimService } from "../services/claimService";
 
 const localPickupTime = (value) => {
   if (!value) return "";
   const date = new Date(value);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  return new Date(
+    date.getTime() - date.getTimezoneOffset() * 60000
+  ).toISOString().slice(0, 16);
 };
 
 export default function DevolucaoFlow({
@@ -17,78 +19,15 @@ export default function DevolucaoFlow({
   nomeObjeto = "Objeto",
   onFechar,
 }) {
-  const [pickup, setPickup] = useState(localPickupTime(pickupAt));
+  const [pickup, setPickup] = useState(
+    localPickupTime(pickupAt)
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [etapa, setEtapa] = useState(1);
   const [confirmado, setConfirmado] = useState(false);
-  const [assinado, setAssinado] = useState(false);
+  const [signature, setSignature] = useState(null);
   const [concluido, setConcluido] = useState(false);
-
-  const canvasRef = useRef(null);
-  const desenhandoRef = useRef(false);
-
-  useEffect(() => {
-    if (etapa !== 2) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const contexto = canvas.getContext("2d");
-
-    contexto.strokeStyle = "#183b69";
-    contexto.lineWidth = 2.5;
-    contexto.lineCap = "round";
-    contexto.lineJoin = "round";
-  }, [etapa]);
-
-  function obterPosicao(event) {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-
-    return {
-      x: (event.clientX - rect.left) * (canvas.width / rect.width),
-      y: (event.clientY - rect.top) * (canvas.height / rect.height),
-    };
-  }
-
-  function iniciarDesenho(event) {
-    const canvas = canvasRef.current;
-    const contexto = canvas.getContext("2d");
-    const { x, y } = obterPosicao(event);
-
-    desenhandoRef.current = true;
-    canvas.setPointerCapture(event.pointerId);
-
-    contexto.beginPath();
-    contexto.moveTo(x, y);
-    contexto.lineTo(x + 0.1, y + 0.1);
-    contexto.stroke();
-
-    setAssinado(true);
-  }
-
-  function desenhar(event) {
-    if (!desenhandoRef.current) return;
-
-    const contexto = canvasRef.current.getContext("2d");
-    const { x, y } = obterPosicao(event);
-
-    contexto.lineTo(x, y);
-    contexto.stroke();
-  }
-
-  function pararDesenho() {
-    desenhandoRef.current = false;
-  }
-
-  function limparAssinatura() {
-    const canvas = canvasRef.current;
-    const contexto = canvas.getContext("2d");
-
-    contexto.clearRect(0, 0, canvas.width, canvas.height);
-    setAssinado(false);
-  }
 
   return (
     <div className="devolucao-overlay">
@@ -103,16 +42,18 @@ export default function DevolucaoFlow({
             <span className="devolucao-etiqueta">
               ONDETÁ • DEVOLUÇÃO
             </span>
+
             <h2 id="devolucao-titulo">
               {concluido
-                ? "Assinatura de demonstração"
+                ? "Devolução concluída"
                 : etapa === 1
                   ? "Confirmação de devolução"
                   : "Coleta de assinatura"}
             </h2>
+
             <p>
               {concluido
-                ? "Etapa visual concluída."
+                ? "Entrega física confirmada pelo funcionário."
                 : "Confira as informações antes de continuar."}
             </p>
           </div>
@@ -136,7 +77,11 @@ export default function DevolucaoFlow({
 
             <div className="devolucao-linha" />
 
-            <div className={`devolucao-etapa ${etapa === 2 ? "ativa" : ""}`}>
+            <div
+              className={`devolucao-etapa ${
+                etapa === 2 ? "ativa" : ""
+              }`}
+            >
               <span>2</span>
               Assinatura
             </div>
@@ -145,14 +90,21 @@ export default function DevolucaoFlow({
 
         <div className="devolucao-conteudo">
           {error && <p role="alert">{error}</p>}
+
           {concluido ? (
             <div className="devolucao-sucesso">
-              <div className="devolucao-sucesso-icone">✓</div>
-              <h3>Assinatura coletada na simulação!</h3>
+              <div className="devolucao-sucesso-icone">
+                ✓
+              </div>
+
+              <h3>Assinatura confirmada!</h3>
+
               <p>
                 O objeto foi marcado como devolvido.
-                A retirada foi registrada com assinatura simulada.
+                A retirada foi registrada com termo
+                assinado eletronicamente.
               </p>
+
               <button
                 type="button"
                 className="devolucao-primario"
@@ -183,13 +135,22 @@ export default function DevolucaoFlow({
               </div>
 
               <div className="devolucao-aviso">
-                Esta etapa representa a conferência das
-                informações antes da retirada do objeto.
+                Esta etapa representa a conferência
+                das informações antes da retirada do objeto.
               </div>
 
-              <label>Data e hora da retirada
-                <input type="datetime-local" required value={pickup} onChange={(event) => setPickup(event.target.value)} />
+              <label>
+                Data e hora da retirada
+                <input
+                  type="datetime-local"
+                  required
+                  value={pickup}
+                  onChange={(event) =>
+                    setPickup(event.target.value)
+                  }
+                />
               </label>
+
               <label className="devolucao-checkbox">
                 <input
                   type="checkbox"
@@ -198,9 +159,11 @@ export default function DevolucaoFlow({
                     setConfirmado(event.target.checked)
                   }
                 />
+
                 <span>
-                  Confirmo que as informações foram conferidas
-                  e desejo prosseguir para a coleta da assinatura.
+                  Confirmo que as informações foram
+                  conferidas e desejo prosseguir para
+                  a coleta da assinatura.
                 </span>
               </label>
 
@@ -218,30 +181,46 @@ export default function DevolucaoFlow({
                   className="devolucao-primario"
                   disabled={!confirmado || !pickup || busy}
                   onClick={async () => {
-                    setBusy(true); setError("");
+                    setBusy(true);
+                    setError("");
+
                     try {
-                      
-                    const dataRetirada = new Date(pickup);
+                      const dataRetirada = new Date(pickup);
 
-                    if (
-                      Number.isNaN(dataRetirada.getTime()) ||
-                      dataRetirada <= new Date()
-                    ) {
-                      setError("Escolha uma data e horário futuros para a retirada.");
-                      return;
-                    }
+                      if (
+                        Number.isNaN(dataRetirada.getTime()) ||
+                        (
+                          pickup !== localPickupTime(pickupAt) &&
+                          dataRetirada <= new Date()
+                        )
+                      ) {
+                        setError(
+                          "Escolha uma data e horário futuros para a retirada."
+                        );
+                        return;
+                      }
 
-                    if (pickup !== localPickupTime(pickupAt)) {
-                      await claimService.schedule(
-                        claimId,
-                        dataRetirada.toISOString()
+                      if (
+                        pickup !== localPickupTime(pickupAt)
+                      ) {
+                        await claimService.schedule(
+                          claimId,
+                          dataRetirada.toISOString()
+                        );
+                      }
+
+                      setSignature(
+                        await claimService.requestSignature(
+                          claimId
+                        )
                       );
-                    }
 
-                    setEtapa(2);
-
+                      setEtapa(2);
                     } catch (err) {
-                      console.error("Erro ao agendar retirada:", err);
+                      console.error(
+                        "Erro ao agendar retirada:",
+                        err
+                      );
 
                       setError(
                         err?.response?.data?.detail ||
@@ -249,8 +228,9 @@ export default function DevolucaoFlow({
                         err?.message ||
                         "Não foi possível agendar a retirada."
                       );
+                    } finally {
+                      setBusy(false);
                     }
-                    finally { setBusy(false); }
                   }}
                 >
                   Continuar para assinatura →
@@ -261,9 +241,10 @@ export default function DevolucaoFlow({
             <>
               <div className="devolucao-info">
                 <h3>Assinatura do responsável</h3>
+
                 <p>
-                  Peça ao responsável pela retirada que assine
-                  no espaço abaixo.
+                  O usuário deve aceitar e assinar o termo
+                  em Minhas solicitações.
                 </p>
 
                 <div className="devolucao-campo">
@@ -273,50 +254,117 @@ export default function DevolucaoFlow({
               </div>
 
               <div className="devolucao-assinatura">
-                <canvas
-                  ref={canvasRef}
-                  width={800}
-                  height={260}
-                  onPointerDown={iniciarDesenho}
-                  onPointerMove={desenhar}
-                  onPointerUp={pararDesenho}
-                  onPointerCancel={pararDesenho}
-                  onLostPointerCapture={pararDesenho}
-                  aria-label="Área para desenhar assinatura"
-                />
+                <p role="status">
+                  Situação: {signature?.status || "pending"}
+                </p>
 
-                <span className="devolucao-linha-assinatura">
-                  Assine acima desta linha
-                </span>
-              </div>
 
-              <div className="devolucao-assinatura-opcoes">
-                <small>
-                  Use o mouse, a caneta digital ou o dedo.
-                </small>
+                <div className="devolucao-aviso">
+                  <p>
+                    O termo de devolução de quatro páginas foi
+                    disponibilizado ao solicitante.
+                  </p>
+
+                  <p>
+                    O usuário deverá acessar Minhas solicitações,
+                    visualizar o documento completo e desenhar sua
+                    assinatura com o mouse, dedo ou caneta.
+                  </p>
+
+                  <p>
+                    <strong>Situação:</strong>{" "}
+                    {signature?.status === "pending"
+                      ? "Aguardando aceite do usuário"
+                      : signature?.status === "accepted"
+                        ? "Aguardando assinatura manuscrita"
+                        : signature?.status === "signed"
+                          ? "Documento assinado com sucesso"
+                          : signature?.status === "rejected"
+                            ? "Proposta recusada"
+                            : "Aguardando atualização"}
+                  </p>
+                </div>
+
+
+                {signature?.status === "rejected" && (
+                  <p>
+                    A proposta foi recusada.
+                    Feche esta janela e faça um novo agendamento.
+                  </p>
+                )}
+
+
+                {signature?.status === "signed" && (
+                  <button
+                    type="button"
+                    className="devolucao-secundario"
+                    onClick={async () => {
+                      try {
+                        setError("");
+
+                        const url = await claimService.openReturnPdf(
+                          claimId,
+                          true
+                        );
+
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = `termo-devolucao-${claimId}.pdf`;
+
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+
+                        setTimeout(() => {
+                          URL.revokeObjectURL(url);
+                        }, 30000);
+                      } catch (err) {
+                        setError(
+                          err.message || "Erro ao baixar o termo."
+                        );
+                      }
+                    }}
+                  >
+                    Baixar termo assinado (PDF)
+                  </button>
+                )}
+
 
                 <button
                   type="button"
-                  className="devolucao-limpar"
-                  onClick={limparAssinatura}
-                >
-                  Limpar assinatura
-                </button>
-              </div>
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    setError("");
 
-              <div className="devolucao-aviso">
-                Assinatura apenas para demonstração.
-                Não possui validade de autenticação digital.
+                    try {
+                      setSignature(
+                        await claimService.signatureStatus(
+                          claimId
+                        )
+                      );
+                    } catch (e) {
+                      setError(e.message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Consultar assinatura
+                </button>
+
+                <p>
+                  A assinatura eletrônica é registrada
+                  no Onde Tá. Confirme a devolução somente
+                  após entregar fisicamente o objeto.
+                </p>
               </div>
 
               <div className="devolucao-acoes">
                 <button
                   type="button"
                   className="devolucao-secundario"
-                  onClick={() => {
-                    setEtapa(1);
-                    setAssinado(false);
-                  }}
+                  onClick={() => setEtapa(1)}
                 >
                   ← Voltar
                 </button>
@@ -324,17 +372,28 @@ export default function DevolucaoFlow({
                 <button
                   type="button"
                   className="devolucao-primario"
-                  disabled={!assinado || busy}
+                  disabled={
+                    signature?.status !== "signed" || busy
+                  }
                   onClick={async () => {
-                    setBusy(true); setError("");
+                    setBusy(true);
+                    setError("");
+
                     try {
-                      await claimService.completeReturn(claimId, canvasRef.current.toDataURL("image/png"));
-                      setConcluido(true); onReturned?.();
-                    } catch (error) { setError(error.message); }
-                    finally { setBusy(false); }
+                      await claimService.completeReturn(
+                        claimId
+                      );
+
+                      setConcluido(true);
+                      onReturned?.();
+                    } catch (error) {
+                      setError(error.message);
+                    } finally {
+                      setBusy(false);
+                    }
                   }}
                 >
-                  Confirmar assinatura
+                  Confirmar entrega física
                 </button>
               </div>
             </>

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from typing import Optional
+import secrets
+import hashlib
+import time
+import logging
 
 from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
-    create_password_reset_token,
     hash_password,
     verify_password,
 )
@@ -57,27 +60,42 @@ async def authenticate(db: AsyncSession, email: str, password: str) -> Optional[
 async def request_password_reset(db: AsyncSession, email: str, background_tasks: BackgroundTasks) -> None:
     q = await db.execute(select(User).where(User.email == email))
     user = q.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-    token = create_password_reset_token(user.email)
+    if not user or not user.is_active:
+        logging.getLogger(__name__).warning(
+            "password_reset_user_not_found_or_inactive"
+        )
+        return
+    token = secrets.token_urlsafe(32)
+    user.password_reset_digest = hashlib.sha256(token.encode()).hexdigest()
+    user.password_reset_expires = time.time() + 900
+    await db.commit()
     background_tasks.add_task(
-        email_service.send_password_reset_email, user.email, token)
+        _deliver_reset, user.email, token)
+    logging.getLogger(__name__).warning(
+    "password_reset_email_scheduled"
+)
 
 
 async def reset_password(db: AsyncSession, token: str, new_password: str) -> None:
-    from app.core.security import verify_password_reset_token
-
-    email = verify_password_reset_token(token)
-    if not email:
-        raise HTTPException(
-            status_code=400, detail="Token inválido ou expirado")
-
-    q = await db.execute(select(User).where(User.email == email))
-    user = q.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    user = await db.scalar(select(User).where(User.password_reset_digest == digest).with_for_update())
+    if not user or not user.is_active or not user.password_reset_expires or user.password_reset_expires <= time.time():
+        raise HTTPException(400, "Token inválido ou expirado")
+    user.password_reset_digest = None
+    user.password_reset_expires = None
     user.password_hash = hash_password(new_password)
     await db.commit()
     await db.refresh(user)
+
+
+
+async def _deliver_reset(email, token):
+    logger = logging.getLogger(__name__)
+
+    logger.warning("PASSWORD_RESET: iniciando envio")
+
+    try:
+        await email_service.send_password_reset_email(email, token)
+        logger.warning("PASSWORD_RESET: servico de email finalizou")
+    except Exception:
+        logger.exception("PASSWORD_RESET: erro durante envio")

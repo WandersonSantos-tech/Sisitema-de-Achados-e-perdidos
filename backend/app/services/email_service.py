@@ -62,10 +62,13 @@ class BrevoEmailService:
                         },
                         json=payload,
                     )
-
+                logger.warning(
+                    "BREVO_API_STATUS: %s",
+                    response.status_code
+                )
                 if response.is_error:
                     raise EmailDeliveryError(
-                        f"Brevo API respondeu com erro {response.status_code}: {response.text}"
+                        f"Brevo API respondeu com erro {response.status_code}"
                     )
 
                 result = response.json()
@@ -83,7 +86,7 @@ class BrevoEmailService:
                     "brevo_email_failover",
                     extra={"context": {"recipient": to_email, "subject": subject}},
                 )
-
+        logger.warning("EMAIL_FALLBACK: usando SMTP")
         return await self.send_via_smtp(
             to_email=to_email,
             subject=subject,
@@ -117,6 +120,7 @@ class BrevoEmailService:
         smtp_kwargs = {
             "hostname": settings.SMTP_HOST,
             "port": int(settings.SMTP_PORT),
+            "start_tls": False if settings.SMTP_HOST == "mailpit" or not settings.SMTP_USE_TLS else None,
             "timeout": settings.SMTP_TIMEOUT_SECONDS,
         }
 
@@ -134,8 +138,6 @@ class BrevoEmailService:
         try:
             await smtp.connect()
             # Se houver credenciais configuradas para um servidor real, faz o login
-            if settings.SMTP_HOST != "mailpit" and getattr(settings, "SMTP_USERNAME", None):
-                await smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
 
             await smtp.send_message(msg)
             audit_logger.log_event(
@@ -152,7 +154,7 @@ class BrevoEmailService:
                 extra={"context": {"recipient": to_email, "subject": subject}},
             )
             raise EmailDeliveryError(
-                f"Falha no envio de e-mail: {exc}") from exc
+                "Falha no envio de e-mail") from exc
         finally:
             try:
                 await smtp.quit()
@@ -162,7 +164,7 @@ class BrevoEmailService:
 
 async def send_password_reset_email(to_email: str, token: str) -> None:
     """Compatibilidade com o fluxo atual de reset de senha."""
-    reset_link = f"http://localhost:5173/redefinir-senha?token={token}"
+    reset_link = f"{settings.PASSWORD_RESET_URL}?token={token}"
     text = (
         "Você solicitou a redefinição de senha.\n\n"
         "Use o link abaixo para redefinir sua senha (válido por 15 minutos):\n\n"

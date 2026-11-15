@@ -83,6 +83,25 @@ class MessageService:
         if not item:
             raise ValueError(f"Item {item_id} não encontrado")
 
+
+        # A entrega física encerra a troca de mensagens,
+        # mas o histórico continua disponível para consulta.
+        devolucao_concluida = await db.scalar(
+            select(Claim.id)
+            .where(
+                Claim.item_id == item_id,
+                Claim.returned_at.is_not(None),
+            )
+            .limit(1)
+        )
+
+        if devolucao_concluida is not None or item.status == ItemStatus.DEVOLVIDO:
+            raise PermissionError(
+                "Não é possível trocar mensagens sobre este item, "
+                "pois ele já foi devolvido."
+            )
+
+
         await MessageService.validate_participants(db, item, sender.id, msg_in.receiver_id)
 
         # Criar mensagem
@@ -96,7 +115,7 @@ class MessageService:
         db.add(message)
         await db.flush()
 
-        
+
         # A primeira mensagem da equipe inicia
         # automaticamente a negociação dos objetos associados.
         if sender.role in (UserRole.ADMIN, UserRole.COLABORADOR):

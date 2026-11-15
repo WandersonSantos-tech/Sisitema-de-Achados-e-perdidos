@@ -7,6 +7,8 @@ function LoginPage() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
 
+  const [challenge, setChallenge] = useState(null);
+  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
@@ -38,7 +40,9 @@ function LoginPage() {
       setCarregando(true);
 
       // Realiza a autenticação via authService
-      const { usuario } = await authService.login(email.trim(), senha.trim());
+      const result = await authService.login(email.trim(), senha, challenge, code);
+      if (result.requires_2fa) { setChallenge(result.challenge_token); setCarregando(false); return; }
+      const { usuario } = result;
 
       if (!isMounted.current) return;
 
@@ -90,6 +94,8 @@ function LoginPage() {
   }
 
   function alterarModo() {
+    setChallenge(null);
+    setCode("");
     setModoFuncionario((prev) => !prev);
     setEmail("");
     setSenha("");
@@ -207,6 +213,13 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit}>
+            {challenge && <div className="form-group">
+              <label htmlFor="otp">Código do autenticador</label>
+              <div className="input-container"><span className="input-icon">#</span>
+                <input id="otp" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0,6))} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required disabled={carregando} />
+              </div>
+              <button type="button" className="forgot-password" disabled={carregando} onClick={() => { setChallenge(null); setCode(""); }}>Cancelar verificação</button>
+            </div>}
             {erro && (
               <div className="error-message" role="alert">
                 <span>!</span>
@@ -246,7 +259,7 @@ function LoginPage() {
                   onClick={() => navigate("/recuperar-senha")}
                   disabled={carregando}
                 >
-                  Esqueci minha senha
+                  Esqueceu sua senha?
                 </button>
               </div>
 

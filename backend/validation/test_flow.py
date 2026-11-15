@@ -39,7 +39,7 @@ async def main():
             assert result.status_code == expected, (method,path,result.status_code,result.text)
             checks.append(f'{method} {path}: {expected}')
             return result.json() if result.content else None
-        staff_data = {'name':'Funcionário','email':'staff@example.com','password':'password123'}
+        staff_data = {'name':'Funcionário','email':'staff@example.com','password':'password123', 'cpf':'52998224725'}
         await call('POST','/admin/staff',uh,403,staff_data)
         staff = await call('POST','/admin/staff',ah,201,staff_data)
         assert staff['role'] == 'COLABORADOR'
@@ -57,7 +57,7 @@ async def main():
         internal = await call('GET','/admin/items?origin=internal',ah)
         assert [x['id'] for x in internal['items']] == [found['id']]
         await call('POST',f"/admin/items/{found['id']}/matches/{lost['id']}/send",fh,201)
-        await call('POST',f"/admin/items/{found['id']}/matches/{lost['id']}/send",fh,409)
+        await call('POST',f"/admin/items/{found['id']}/matches/{lost['id']}/send",fh,400)
         claims = await call('GET','/claims/my-claims',uh)
         claim = claims['items'][0]
         assert claim['status']=='CORRESPONDENCIA'
@@ -75,10 +75,11 @@ async def main():
         pickup=(datetime.now(timezone.utc)+timedelta(days=1)).isoformat()
         await call('PATCH',f"/claims/claims/{claim['id']}/pickup",uh,403,{'pickup_at':pickup})
         await call('PATCH',f"/claims/claims/{claim['id']}/pickup",fh,200,{'pickup_at':pickup})
-        await call('POST',f"/claims/claims/{claim['id']}/return",fh,200,{'signature':'data:image/png;base64,'+'A'*110})
+        await call('POST',f"/claims/claims/{claim['id']}/signature",fh,200)
+        await call('POST',f"/claims/claims/{claim['id']}/return",fh,200,{})
         returned=await call('GET',f"/admin/items/{found['id']}",ah)
         assert returned['status']=='DEVOLVIDO'
-        await call('POST',f"/claims/claims/{claim['id']}/return",fh,409,{'signature':'data:image/png;base64,'+'A'*110})
+        await call('POST',f"/claims/claims/{claim['id']}/return",fh,409,{})
         await call('POST',f"/items/{found['id']}/reviews",uh,201,{'rating':5,'comment':'Recebido.'})
         reviews = await call('GET',f"/items/{found['id']}/reviews",uh)
         assert len(reviews)==1

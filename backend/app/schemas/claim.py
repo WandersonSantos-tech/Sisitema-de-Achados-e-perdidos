@@ -70,6 +70,7 @@ class ClaimDetailResponse(BaseModel):
     created_at: datetime
     requester: RequesterInfo
     item: ItemInfo
+    lost_item: Optional[ItemInfo] = None
 
     model_config = ConfigDict(from_attributes=True)
 

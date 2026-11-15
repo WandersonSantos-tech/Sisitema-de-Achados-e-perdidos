@@ -34,8 +34,8 @@ test("JWT em chamadas privadas, nunca em login público", async () => {
   });
   await api.apiRequest("/items");
   await api.apiRequest("/auth/login", { public: true });
-  assert.equal(calls[0].o.headers.Authorization, "Bearer jwt");
-  assert.equal(calls[1].o.headers.Authorization, undefined);
+  assert.equal(calls[0].o.headers.get("Authorization"), "Bearer jwt");
+  assert.equal(calls[1].o.headers.get("Authorization"), null);
   assert.ok(calls[0].u.startsWith("https://"));
 });
 test("401 invalida sessão privada e informa o contexto", async () => {
@@ -88,15 +88,13 @@ test("erros 422, CPF duplicado e servidor não JSON são legíveis", async () =>
 });
 test("falhas de rede e timeout preservam mensagem útil", async () => {
   let kind = "network";
-  const { api } = client(async () => {
+  const { api } = client(async (_, options) => {
     if (kind === "network") throw new Error("fetch failed");
-    const e = new Error();
-    e.name = "AbortError";
-    throw e;
+    await new Promise((resolve, reject) => options.signal.addEventListener("abort", () => reject(new Error("aborted"))));
   });
   await assert.rejects(api.apiRequest("/items"), /conectar/);
   kind = "timeout";
-  await assert.rejects(api.apiRequest("/items"), /demorou/);
+  await assert.rejects(api.apiRequest("/items", {timeoutMs: 1}), /demorou/);
 });
 test("URLs de imagens: Azure, relativa e URI local", () => {
   const { api } = client(() => {});

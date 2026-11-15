@@ -23,6 +23,7 @@ import Matches from "../screens/usuario/CorrespondenciasScreen";
 import Claims from "../screens/usuario/SolicitacoesScreen";
 import Chat from "../screens/usuario/ChatScreen";
 import Notifications from "../screens/usuario/NotificacoesScreen";
+import TwoFactor from "../screens/usuario/TwoFactorScreen";
 import Perfil from "../screens/usuario/PerfilScreen";
 import Ajuda from "../screens/usuario/AjudaScreen";
 
@@ -112,7 +113,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={{ prefixes: ["ondeta://"], config: { screens: { RedefinirSenha: "redefinir-senha" } } }}>
       <Stack.Navigator
         key={user ? "usuario" : "visitante"}
         initialRouteName={user ? "UsuarioHome" : "Login"}
@@ -130,6 +131,7 @@ export default function AppNavigator() {
       >
         {user ? (
           <Stack.Group navigationKey="user">
+            <Stack.Screen name="TwoFactor" component={TwoFactor} options={{title: "Segurança"}} />
             <Stack.Screen
               name="UsuarioHome"
               component={Home}

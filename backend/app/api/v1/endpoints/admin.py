@@ -319,7 +319,14 @@ async def send_match(
     staff: User = Depends(get_current_staff),
     db: AsyncSession = Depends(get_db),
 ):
-    await db.execute(select(Item.id).where(Item.id == item_id).with_for_update())
+        # Bloqueia os dois objetos durante o envio.
+    # A ordenação evita deadlocks entre envios simultâneos.
+    await db.execute(
+        select(Item.id)
+        .where(Item.id.in_([item_id, lost_item_id]))
+        .order_by(Item.id)
+        .with_for_update()
+    )
     found = await get_item_or_404(db, item_id)
     lost = await get_item_or_404(db, lost_item_id)
 
@@ -343,7 +350,26 @@ async def send_match(
             400,
             "Item indisponível para correspondência",
         )
+    # Um objeto só pode participar de uma correspondência enviada.
+    existing_dispatch = await db.scalar(
+        select(MatchDispatch.id)
+        .where(
+            or_(
+                MatchDispatch.found_item_id == found.id,
+                MatchDispatch.lost_item_id == lost.id,
+            )
+        )
+        .limit(1)
+    )
 
+    if existing_dispatch is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Correspondência não permitida. "
+                "Um dos objetos já possui uma correspondência enviada."
+            ),
+        )
     # A correspondência pode ser enviada manualmente,
     # mesmo que os objetos não tenham sido sugeridos
     # pelo algoritmo de similaridade.

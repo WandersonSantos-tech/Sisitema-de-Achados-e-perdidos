@@ -2579,3 +2579,8 @@ button {
   .usuario-page-content { padding: 16px; }
   p, h1, h2, h3 { overflow-wrap: anywhere; }
 }
+
+.lost-status.success {
+  background: #dcfce7;
+  color: #15803d;
+}

@@ -1,8 +1,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { messageService } from "../services/messageService";
 import { authService } from "../services/authService";
-import DevolucaoFlow from "./DevolucaoFlow";
 import "./ClaimChat.css";
 
 export default function ClaimChat({
@@ -20,8 +20,8 @@ export default function ClaimChat({
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [mostrarDevolucao, setMostrarDevolucao] = useState(false);
 
+  const navigate = useNavigate();
   const finalMensagensRef = useRef(null);
 
   const meuId = authService.getUsuario()?.id;
@@ -47,59 +47,58 @@ export default function ClaimChat({
     }
   }, [itemId, interlocutorId]);
 
+  useEffect(() => {
+    let ativo = true;
+    let consultando = false;
 
-useEffect(() => {
-  let ativo = true;
-  let consultando = false;
+    setCarregando(true);
+    setMensagens([]);
 
-  setCarregando(true);
-  setMensagens([]);
+    async function atualizarAutomaticamente() {
+      if (!ativo || consultando || !itemId || !interlocutorId) {
+        return;
+      }
 
-  async function atualizarAutomaticamente() {
-    if (!ativo || consultando || !itemId || !interlocutorId) {
-      return;
-    }
+      consultando = true;
 
-    consultando = true;
-
-    try {
-      const resposta = await messageService.conversation(
-        itemId,
-        interlocutorId
-      );
-
-      if (!ativo) return;
-
-      setMensagens(resposta.messages || []);
-      setErro("");
-    } catch (error) {
-      if (ativo) {
-        setErro(
-          error.message || "Erro ao atualizar mensagens."
+      try {
+        const resposta = await messageService.conversation(
+          itemId,
+          interlocutorId
         );
-      }
-    } finally {
-      consultando = false;
 
-      if (ativo) {
-        setCarregando(false);
+        if (!ativo) return;
+
+        setMensagens(resposta.messages || []);
+        setErro("");
+      } catch (error) {
+        if (ativo) {
+          setErro(
+            error.message || "Erro ao atualizar mensagens."
+          );
+        }
+      } finally {
+        consultando = false;
+
+        if (ativo) {
+          setCarregando(false);
+        }
       }
     }
-  }
 
-  atualizarAutomaticamente();
+    atualizarAutomaticamente();
 
-  const intervalo = setInterval(() => {
-    if (document.visibilityState === "visible") {
-      atualizarAutomaticamente();
-    }
-  }, 3000);
+    const intervalo = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        atualizarAutomaticamente();
+      }
+    }, 3000);
 
-  return () => {
-    ativo = false;
-    clearInterval(intervalo);
-  };
-}, [itemId, interlocutorId]);
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [itemId, interlocutorId]);
 
   useEffect(() => {
     finalMensagensRef.current?.scrollIntoView({
@@ -172,29 +171,7 @@ useEffect(() => {
           <span>Conversa sobre o objeto</span>
         </div>
 
-        <button
-          type="button"
-          className="claim-chat-refresh"
-          onClick={carregarMensagens}
-          title="Atualizar mensagens"
-          aria-label="Atualizar mensagens"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 11a8 8 0 0 0-14-5L4 8" />
-            <path d="M4 4v4h4" />
-            <path d="M4 13a8 8 0 0 0 14 5l2-2" />
-            <path d="M16 16h4v4" />
-          </svg>
-        </button>
+
       </header>
 
       <div className="claim-chat-messages">
@@ -217,7 +194,8 @@ useEffect(() => {
             String(mensagem.sender_id) === String(meuId);
 
           const dataAtual = formatarData(mensagem.created_at);
-          const mostrarData = dataAtual && dataAtual !== ultimaData;
+          const mostrarData =
+            dataAtual && dataAtual !== ultimaData;
 
           ultimaData = dataAtual;
 
@@ -255,7 +233,10 @@ useEffect(() => {
         </div>
       )}
 
-      <form className="claim-chat-footer" onSubmit={enviarMensagem}>
+      <form
+        className="claim-chat-footer"
+        onSubmit={enviarMensagem}
+      >
         <textarea
           value={texto}
           onChange={(event) => setTexto(event.target.value)}
@@ -265,7 +246,10 @@ useEffect(() => {
           required
           aria-label="Digite sua mensagem"
           onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey
+            ) {
               event.preventDefault();
 
               if (!event.nativeEvent.isComposing) {
@@ -301,27 +285,36 @@ useEffect(() => {
           )}
         </button>
       </form>
-      {permitirDevolucao && (
-  <div className="claim-chat-devolucao-action">
-    <button
-      type="button"
-      onClick={() => setMostrarDevolucao(true)}
-    >
-      Seguir para devolução →
-    </button>
-  </div>
-)}
 
-{mostrarDevolucao && (
-  <DevolucaoFlow
-    claimId={claimId}
-    pickupAt={pickupAt}
-    onReturned={onReturned}
-    nomeUsuario={interlocutorNome}
-    nomeObjeto={nomeObjeto}
-    onFechar={() => setMostrarDevolucao(false)}
-  />
-)}
+      {permitirDevolucao && (
+        <div className="claim-chat-devolucao-action">
+          <button
+            type="button"
+            onClick={() => {
+              if (!claimId) {
+                window.alert(
+                  "Não foi possível identificar a solicitação."
+                );
+                return;
+              }
+
+              const confirmado = window.confirm(
+                `Tem certeza de que deseja iniciar a devolução de "${nomeObjeto}"?\n\nVocê será direcionado para a central de devoluções.`
+              );
+
+              if (!confirmado) return;
+
+              navigate(
+                `/funcionario/devolucoes?claim=${encodeURIComponent(
+                  claimId
+                )}`
+              );
+            }}
+          >
+            Seguir para devolução →
+          </button>
+        </div>
+      )}
     </section>
   );
 }

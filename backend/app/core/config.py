@@ -46,6 +46,8 @@ class Settings(BaseSettings):
 
     TWO_FACTOR_ISSUER: str = "Achados e Perdidos"
     TWO_FACTOR_WINDOW: int = 1
+    TWO_FACTOR_ENCRYPTION_KEY: str = ""
+    PASSWORD_RESET_URL: str = "http://localhost:5173/redefinir-senha"
 
     UPLOAD_DIR: str = "/app/uploads"
 

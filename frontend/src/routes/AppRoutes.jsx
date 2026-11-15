@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
+import TwoFactorPage from "../pages/auth/TwoFactorPage";
 import LoginPage from "../pages/auth/LoginPage";
 import CadastroPage from "../pages/auth/CadastroPage";
 import RecuperarSenhaPage from "../pages/auth/RecuperarSenhaPage";
@@ -63,14 +64,15 @@ function AdminGuard() {
 
   if (
     ![
-      "dashboard",
-      "objetos",
-      "publicacoes",
-      "correspondencias",
-      "solicitacoes",
-      "usuarios",
-      "categorias",
-    ].includes(secao)
+  "dashboard",
+  "objetos",
+  "publicacoes",
+  "correspondencias",
+  "solicitacoes",
+  "devolucoes",
+  "usuarios",
+  "categorias",
+].includes(secao)
   ) {
     return <Navigate to="/funcionario/dashboard" replace />;
   }
@@ -78,11 +80,25 @@ function AdminGuard() {
   return <AdminPage key={secao} />;
 }
 
+function SessionGuard({ children, userOnly = false }) {
+  const [user, setUser] = useState(undefined);
+  useEffect(() => {
+    let live = true;
+    authService.getCurrentUser().then(u => {if (live) setUser(u);}).catch(() => {if (live) setUser(null);});
+    return () => {live = false;};
+  }, []);
+  if (user === undefined) return <p>Verificando acesso...</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (userOnly && user.role !== "USER") return <Navigate to="/funcionario/dashboard" replace />;
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/usuario/perfil" element={<UsuarioSupportPage />} />
-      <Route path="/usuario/ajuda" element={<UsuarioSupportPage />} />
+      <Route path="/seguranca" element={<SessionGuard><TwoFactorPage /></SessionGuard>} />
+      <Route path="/usuario/perfil" element={<SessionGuard userOnly><UsuarioSupportPage /></SessionGuard>} />
+      <Route path="/usuario/ajuda" element={<SessionGuard userOnly><UsuarioSupportPage /></SessionGuard>} />
 
       <Route
         path="/usuario/correspondencias"
@@ -116,26 +132,26 @@ function AppRoutes() {
         element={<RedefinirSenhaPage />}
       />
 
-      <Route path="/usuario/home" element={<UsuarioHome />} />
+      <Route path="/usuario/home" element={<SessionGuard userOnly><UsuarioHome /></SessionGuard>} />
 
       <Route
         path="/usuario/meus-itens"
-        element={<MeusItensPage />}
+        element={<SessionGuard userOnly><MeusItensPage /></SessionGuard>}
       />
 
       <Route
         path="/usuario/meus-itens/:id"
-        element={<ItemDetalhePage />}
+        element={<SessionGuard userOnly><ItemDetalhePage /></SessionGuard>}
       />
 
       <Route
         path="/usuario/solicitacoes"
-        element={<SolicitacoesPage />}
+        element={<SessionGuard userOnly><SolicitacoesPage /></SessionGuard>}
       />
 
       <Route
         path="/usuario/item-perdido"
-        element={<ItemPerdidoPage />}
+        element={<SessionGuard userOnly><ItemPerdidoPage /></SessionGuard>}
       />
 
       <Route
@@ -150,7 +166,7 @@ function AppRoutes() {
 
       <Route
         path="/usuario/notificacoes"
-        element={<NotificacoesPage />}
+        element={<SessionGuard userOnly><NotificacoesPage /></SessionGuard>}
       />
 
       <Route

@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 .venv/
+mobile/dist-local/
+mobile/expo-config-local.txt
+backend/.pytest_cache/
 venv/
 
 # pastas geradas
@@ -17,3 +20,5 @@ mobile/.expo/
 
 # estrutura do projeto
 achados e perdidos/
+
+.venv/

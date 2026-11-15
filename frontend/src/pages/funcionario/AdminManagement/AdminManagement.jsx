@@ -347,16 +347,25 @@ export default function AdminManagement({ section }) {
                       {section === "usuarios" ? row.email : row.location_name}
                     </p>
 
-                    <small>
-                      {section === "usuarios"
-                        ? row.is_active
-                          ? "Ativo"
-                          : "Bloqueado"
-                        : section === "publicacoes"
-                          ? row.status.replaceAll("_", " ")
-                          : ""}{" "}
-                      · {day(row.created_at)}
-                    </small>
+                    <div className="publication-status-line">
+                      {section === "publicacoes" ? (
+                        <span
+                          className={`publication-status-badge ${
+                            row.status === "DEVOLVIDO"
+                              ? "success"
+                              : row.status === "EM_NEGOCIACAO"
+                                ? "match"
+                                : "searching"
+                          }`}
+                        >
+                          {row.status?.replaceAll("_", " ")}
+                        </span>
+                      ) : (
+                        <small>{row.is_active ? "Ativo" : "Bloqueado"}</small>
+                      )}
+
+                      <small>· {day(row.created_at)}</small>
+                    </div>
                   </div>
                 </div>
 

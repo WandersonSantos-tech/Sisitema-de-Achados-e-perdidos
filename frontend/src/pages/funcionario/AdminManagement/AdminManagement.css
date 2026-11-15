@@ -62,3 +62,35 @@
     text-align: center;
   }
 }
+.publication-status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.publication-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 30px;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.publication-status-badge.searching {
+  background: #eaf2ff;
+  color: #1763cf;
+}
+
+.publication-status-badge.match {
+  background: #fff4d8;
+  color: #ae7300;
+}
+
+.publication-status-badge.success {
+  background: #dcfce7;
+  color: #15803d;
+}

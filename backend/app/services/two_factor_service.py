@@ -83,3 +83,36 @@ def verify_code(secret: str, code: str) -> bool:
         )
 
     return valid
+
+
+# A dedicated stable key keeps TOTP secrets encrypted independently of JWT rotation.
+def encrypt_secret(secret: str) -> str:
+    from cryptography.fernet import Fernet
+    if not settings.TWO_FACTOR_ENCRYPTION_KEY:
+        raise TwoFactorServiceError("Configure TWO_FACTOR_ENCRYPTION_KEY antes de usar 2FA")
+    return "enc:" + Fernet(settings.TWO_FACTOR_ENCRYPTION_KEY.encode()).encrypt(secret.encode()).decode()
+
+
+def decrypt_secret(secret: str) -> str:
+    from cryptography.fernet import Fernet, InvalidToken
+    if not secret.startswith("enc:"):
+        return secret  # Existing accounts are encrypted on successful verification.
+    try:
+        return Fernet(settings.TWO_FACTOR_ENCRYPTION_KEY.encode()).decrypt(secret[4:].encode()).decode()
+    except (ValueError, InvalidToken):
+        raise TwoFactorServiceError("Chave 2FA indisponível") from None
+
+
+def consume_code(user, code: str) -> bool:
+    import time
+    secret = decrypt_secret(user.two_factor_secret)
+    if not verify_code(secret, code):
+        return False
+    step = int(time.time()) // 30
+    matching = next((n for n in range(step - settings.TWO_FACTOR_WINDOW, step + settings.TWO_FACTOR_WINDOW + 1)
+                     if pyotp.TOTP(secret).at(n * 30) == code), None)
+    if matching is None or (user.two_factor_last_step is not None and matching <= user.two_factor_last_step):
+        return False
+    user.two_factor_secret = encrypt_secret(secret)
+    user.two_factor_last_step = matching
+    return True

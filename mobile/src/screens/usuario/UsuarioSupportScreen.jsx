@@ -66,6 +66,7 @@ export default function UsuarioSupportScreen({ navigation, route }) {
       style={styles.safe}
       edges={["top", "left", "right"]}
     >
+      {profile && <Pressable onPress={() => navigation.navigate("TwoFactor")}><Text style={styles.headerLink}>Configurar autenticacao 2FA</Text></Pressable>}
       <View
         style={[
           styles.header,

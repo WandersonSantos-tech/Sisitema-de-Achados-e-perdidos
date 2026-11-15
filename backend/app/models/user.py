@@ -50,6 +50,11 @@ class User(Base, TimestampMixin):
         String(255), nullable=True, default=None)
     is_two_factor_enabled: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False)
+    two_factor_challenge: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    two_factor_setup_expires: Mapped[float | None] = mapped_column(sa.Float, nullable=True)
+    password_reset_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    password_reset_expires: Mapped[float | None] = mapped_column(sa.Float, nullable=True)
+    two_factor_last_step: Mapped[int | None] = mapped_column(sa.BigInteger, nullable=True)
 
     items: Mapped[list[Item]] = relationship(
         back_populates="user", cascade="all, delete-orphan")

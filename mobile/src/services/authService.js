@@ -1,11 +1,12 @@
 import { apiRequest, storage } from "./api";
 export const authService = {
-  async login(email, password) {
-    const data = await apiRequest("/auth/login", {
+  async login(email, password, challengeToken = null, code = null) {
+    const data = await apiRequest(challengeToken ? "/auth/2fa/verify" : "/auth/login", {
       public: true,
       method: "POST",
-      body: JSON.stringify({ email: email.trim(), password }),
+      body: JSON.stringify(challengeToken ? { challenge_token: challengeToken, code } : { email: email.trim(), password }),
     });
+    if (data?.requires_2fa) { await storage.clear(); return data; }
     if (!data?.access_token)
       throw new Error("Token não recebido pelo servidor.");
     await storage.setToken(data.access_token);

@@ -8,6 +8,7 @@ import { adminService } from "../../../services/adminService";
 import "./AdminPage.css";
 import AdminManagement from "../AdminManagement/AdminManagement";
 import ClaimChat from "../../../components/ClaimChat";
+import DevolucoesPage from "../DevolucoesPage/DevolucoesPage";
 
 const imageUrl = (path) => {
   if (!path) return "";
@@ -35,6 +36,7 @@ const sections = [
   ["solicitacoes", "Solicitações"],
   ["usuarios", "Usuários"],
   ["categorias", "Categorias"],
+  ["devolucoes", "Devoluções e documentos"],
 ];
 
 const date = (value) =>
@@ -97,6 +99,7 @@ export default function AdminPage() {
         "publicacoes",
         "categorias",
         "dashboard",
+        "devolucoes",
       ].includes(secao)
     ) {
       setLoading(false);
@@ -334,6 +337,7 @@ async function removeStaffItem(item) {
           ))}
         </nav>
 
+
         <button className="admin-logout" onClick={logout}>
           Sair da conta
         </button>
@@ -366,12 +370,14 @@ async function removeStaffItem(item) {
           </div>
         )}
 
-        {[
-          "usuarios",
-          "publicacoes",
-          "categorias",
-          "dashboard",
-        ].includes(secao) ? (
+        {secao === "devolucoes" ? (
+        <DevolucoesPage />
+      ) : [
+        "usuarios",
+        "publicacoes",
+        "categorias",
+        "dashboard",
+      ].includes(secao) ? (
           <AdminManagement key={secao} section={secao} />
         ) : loading ? (
           <p className="admin-empty">Carregando informações...</p>
@@ -508,7 +514,7 @@ async function removeStaffItem(item) {
                 </div>
 
 
-                
+
                 <section className="admin-card">
                   <button
                     type="button"
@@ -606,7 +612,7 @@ async function removeStaffItem(item) {
                   )}
                 </section>
 
-                      
+
                 {editingItem && (
                   <section className="admin-card">
                     <h2>Editar objeto: {editingItem.title}</h2>
@@ -718,9 +724,9 @@ async function removeStaffItem(item) {
                     </form>
                   </section>
                 )}
-                          
 
-                                
+
+
                 <ItemTable
                   items={data?.items}
                   onSelect={(item) => {
@@ -808,7 +814,7 @@ async function removeStaffItem(item) {
                       Voltar à lista
                     </button>
                     <h2>Sugestões para {selected.title}</h2>
-                    
+
                     <div className="admin-card">
                       <h3>Correspondência manual</h3>
 
@@ -853,7 +859,7 @@ async function removeStaffItem(item) {
                                   .includes(manualSearch.toLowerCase())
                               )
                               .map((item) => (
-                                
+
                               <div className="admin-row" key={item.id}>
                                 <div className="admin-item-summary">
                                   {item.images?.[0]?.image_url && (
@@ -1024,7 +1030,7 @@ async function removeStaffItem(item) {
                       claimId={c.id}
                       pickupAt={c.pickup_at}
                       onReturned={load}
-                      permitirDevolucao={c.status !== "REJEITADA" &&!c.returned_at}
+                      permitirDevolucao={Boolean(c.id) && !c.returned_at}
                     />
                     )}
 
@@ -1101,7 +1107,7 @@ function ItemTable({ items, onSelect, renderActions }) {
     <List
       rows={items}
       render={(item) => {
-        
+
 
         return (
           <div className="admin-row" key={item.id}>

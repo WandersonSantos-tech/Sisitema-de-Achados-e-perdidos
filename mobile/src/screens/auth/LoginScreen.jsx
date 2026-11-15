@@ -128,6 +128,8 @@ export default function LoginScreen({ navigation }) {
   const isMounted = useRef(true);
   const submitting = useRef(false);
 
+  const [challenge, setChallenge] = useState(null);
+  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -169,7 +171,8 @@ export default function LoginScreen({ navigation }) {
     setCarregando(true);
 
     try {
-      await login(email.trim(), senha.trim());
+      const result = await login(email.trim(), senha, challenge, code);
+      if (result?.requires_2fa) setChallenge(result.challenge_token);
     } catch (error) {
       if (isMounted.current) {
         setErro(
@@ -507,6 +510,11 @@ export default function LoginScreen({ navigation }) {
                 </View>
               </View>
 
+              {challenge && <View style={styles.formGroup}>
+                <AppText>Código do autenticador</AppText>
+                <View style={styles.inputContainer}><TextInput accessibilityLabel="Código de seis dígitos" style={styles.input} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" value={code} onChangeText={setCode} editable={!carregando} /></View>
+                <Pressable disabled={carregando} onPress={() => { setChallenge(null); setCode(""); }}><AppText>Cancelar verificação</AppText></Pressable>
+              </View>}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Entrar"

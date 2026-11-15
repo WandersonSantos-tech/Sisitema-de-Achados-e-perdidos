@@ -41,6 +41,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     role: str
     is_active: bool
+    is_two_factor_enabled: bool = False
     created_at: datetime.datetime
     cpf: Optional[str] = None
 

@@ -32,10 +32,11 @@ export function AuthProvider({ children }) {
     restore();
     return () => setSessionExpiredHandler(() => {});
   }, []);
-  const login = async (email, password) => {
-    const result = await authService.login(email, password);
+  const login = async (email, password, challengeToken, code) => {
+    const result = await authService.login(email, password, challengeToken, code);
     setError("");
-    setUser(result.usuario);
+    if (!result.requires_2fa) setUser(result.usuario);
+    return result;
   };
   const logout = async () => {
     await authService.logout();

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from urllib.parse import quote
 from typing import Any
 
 import httpx
@@ -62,16 +63,18 @@ class DsgnerService:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.base_url}{settings.DSGNER_SIGNATURE_PATH}",
-                    headers=self._headers(),
+                    headers={**self._headers(), "Idempotency-Key": external_id or document_name},
                     json=payload,
                 )
 
             if response.is_error:
                 raise DsgnerServiceError(
-                    f"Dsgner respondeu com erro {response.status_code}: {response.text}"
+                    f"Dsgner respondeu com erro {response.status_code}"
                 )
 
             data = response.json()
+            if not isinstance(data, dict):
+                raise DsgnerServiceError("Resposta inválida do provedor")
             audit_logger.log_event(
                 "AUDIT_DSGNER_REQUEST_CREATED",
                 level=logging.INFO,
@@ -96,7 +99,7 @@ class DsgnerService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}{settings.DSGNER_STATUS_PATH.format(signature_id=signature_id)}",
+                    f"{self.base_url}{settings.DSGNER_STATUS_PATH.format(signature_id=quote(signature_id, safe=''))}",
                     headers=self._headers(),
                 )
 
@@ -106,6 +109,8 @@ class DsgnerService:
                 )
 
             data = response.json()
+            if not isinstance(data, dict):
+                raise DsgnerServiceError("Resposta inválida do provedor")
             audit_logger.log_event(
                 "AUDIT_DSGNER_STATUS_CHECKED",
                 level=logging.INFO,

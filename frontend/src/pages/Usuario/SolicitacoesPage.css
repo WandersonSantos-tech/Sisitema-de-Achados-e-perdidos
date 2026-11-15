@@ -1,0 +1,563 @@
+
+.sol-page {
+  background: #f3f7fd;
+  color: #0a2145;
+}
+
+.sol-hero {
+  background: linear-gradient(120deg, #071b3d, #0b3474 75%, #1556ac);
+  padding-top: 46px;
+  padding-bottom: 52px;
+}
+
+.sol-hero-tag {
+  display: block;
+  width: fit-content;
+  margin-top: 22px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.1);
+  color: #b9d7ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.sol-hero h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -1.2px;
+}
+
+.sol-content {
+  max-width: 1060px;
+  margin-top: 35px;
+}
+
+.sol-overview,
+.sol-card-top,
+.sol-card-footer,
+.sol-section-heading,
+.sol-review-actions,
+.sol-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sol-overview {
+  margin-bottom: 28px;
+}
+
+.sol-eyebrow {
+  color: #1261d2;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.sol-overview h2 {
+  font-size: 27px;
+  margin: 8px 0;
+  letter-spacing: -.7px;
+}
+
+.sol-overview p,
+.sol-section-heading p {
+  margin: 0;
+  color: #788ba6;
+  font-size: 13px;
+}
+
+.sol-total {
+  min-width: 118px;
+  background: white;
+  border: 1px solid #e0e9f6;
+  border-radius: 17px;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.sol-total strong {
+  font-size: 28px;
+  color: #0d4ca5;
+}
+
+.sol-total span {
+  color: #8292a9;
+  font-size: 11px;
+}
+
+.sol-list {
+  display: grid;
+  gap: 22px;
+}
+
+.sol-card {
+  padding: 28px;
+  background: white;
+  border: 1px solid #e1e9f4;
+  border-radius: 22px;
+  box-shadow: 0 10px 35px rgba(17, 51, 100, .045);
+  transition: box-shadow .2s, transform .2s;
+}
+
+.sol-card:hover {
+  box-shadow: 0 16px 42px rgba(17, 51, 100, .09);
+}
+
+.sol-card-top {
+  align-items: flex-start;
+}
+
+.sol-object {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  min-width: 0;
+}
+
+.sol-object-icon {
+  width: 74px;
+  height: 74px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #eaf2ff;
+  color: #1466d9;
+  font-size: 37px;
+  overflow: hidden;
+}
+
+.sol-object-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sol-object-details {
+  min-width: 0;
+}
+
+.sol-object-details h3 {
+  font-size: 21px;
+  margin: 7px 0 5px;
+  overflow-wrap: anywhere;
+  letter-spacing: -.5px;
+}
+
+.sol-description {
+  color: #70819b;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sol-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sol-status-dot,
+.sol-online-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sol-status.done {
+  background: #e0f8ea;
+  color: #16844c;
+}
+
+.sol-status.waiting {
+  background: #fff3d9;
+  color: #a66a00;
+}
+
+.sol-status.progress {
+  background: #e8f1ff;
+  color: #155bc0;
+}
+
+.sol-status.closed {
+  background: #f2f3f6;
+  color: #697386;
+}
+
+.sol-gallery {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.sol-gallery img {
+  width: 100px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e4eaf3;
+}
+
+.sol-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.sol-detail {
+  background: #f6f9fe;
+  border: 1px solid #edf2f9;
+  border-radius: 13px;
+  padding: 15px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sol-detail-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #e5efff;
+  color: #1766cf;
+  font-size: 21px;
+}
+
+.sol-detail div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.sol-detail div span {
+  font-size: 11px;
+  color: #8190a6;
+}
+
+.sol-detail strong {
+  font-size: 12px;
+  color: #203d64;
+  overflow-wrap: anywhere;
+}
+
+.sol-document {
+  margin-top: 23px;
+  border: 1px solid #e0e9f5;
+  border-radius: 17px;
+  padding: 22px;
+  background: #fbfdff;
+}
+
+.sol-section-heading h4 {
+  margin: 7px 0;
+  font-size: 17px;
+  color: #102a50;
+}
+
+.sol-document-icon {
+  display: grid;
+  place-items: center;
+  background: #e7f0ff;
+  color: #1b66cf;
+  width: 43px;
+  height: 43px;
+  border-radius: 12px;
+  font-size: 26px;
+}
+
+.sol-document > section {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin-top: 16px !important;
+  border-radius: 0 !important;
+}
+
+.sol-document > section > h4 {
+  display: none;
+}
+
+.sol-document button,
+.sol-btn {
+  font-family: inherit;
+  font-weight: 750;
+  font-size: 12px;
+  border-radius: 10px;
+  padding: 12px 17px;
+  cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+
+.sol-document button {
+  margin: 5px 8px 5px 0;
+  border: 1px solid #cbdcf5;
+  background: #edf4ff;
+  color: #1252b2;
+}
+
+.sol-document button:hover {
+  background: #dfeaff;
+}
+
+.sol-document button:disabled,
+.sol-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.sol-document input:not([type="checkbox"]) {
+  display: block;
+  width: 100%;
+  margin: 9px 0;
+  padding: 12px;
+  border: 1px solid #d6e1f0;
+  border-radius: 9px;
+  background: white;
+}
+
+.sol-document p,
+.sol-document label {
+  font-size: 13px;
+  color: #647995;
+  line-height: 1.7;
+}
+
+.sol-card-footer {
+  border-top: 1px solid #edf1f7;
+  margin-top: 24px;
+  padding-top: 22px;
+}
+
+.sol-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #8190a6;
+}
+
+.sol-online-dot {
+  color: #20a77c;
+}
+
+.sol-btn {
+  border: 1px solid transparent;
+}
+
+.sol-btn-primary {
+  background: linear-gradient(110deg, #104a9e, #206ad7);
+  color: white;
+  box-shadow: 0 5px 14px rgba(24, 90, 185, .17);
+}
+
+.sol-btn-primary:hover {
+  background: #0b428e;
+  transform: translateY(-1px);
+}
+
+.sol-btn-secondary {
+  background: #edf4ff;
+  color: #1554b5;
+  border-color: #d9e6fb;
+}
+
+.sol-btn-secondary:hover {
+  background: #dfeaff;
+}
+
+.sol-review {
+  margin-top: 24px;
+  padding: 22px;
+  background: #f7faff;
+  border: 1px solid #e2ebf7;
+  border-radius: 17px;
+}
+
+.sol-review-form {
+  margin-top: 18px;
+}
+
+.sol-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 15px;
+}
+
+.sol-stars button {
+  padding: 0 3px;
+  border: 0;
+  background: none;
+  color: #cbd5e1;
+  font-size: 29px;
+  cursor: pointer;
+}
+
+.sol-stars button.selected {
+  color: #f3b324;
+}
+
+.sol-stars span {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #697c97;
+}
+
+.sol-review textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid #d9e3f1;
+  border-radius: 11px;
+  background: white;
+  color: #0c2446;
+  font: inherit;
+  font-size: 13px;
+}
+
+.sol-review textarea:focus,
+.sol-document input:focus {
+  outline: 2px solid #8ebaff;
+  outline-offset: 1px;
+}
+
+.sol-review-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+
+.sol-success {
+  margin-top: 15px;
+  background: #e4f8ec;
+  color: #137345;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sol-review-list {
+  margin-top: 15px;
+}
+
+.sol-review-entry {
+  border-top: 1px solid #e2e9f2;
+  padding-top: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.sol-review-entry span {
+  color: #e8aa1c;
+}
+
+.sol-chat {
+  margin-top: 22px;
+  border-top: 1px solid #edf1f7;
+  padding-top: 20px;
+}
+
+.sol-error {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #b42318;
+  border-radius: 12px;
+}
+
+.sol-empty {
+  padding: 60px 25px;
+  text-align: center;
+  background: white;
+  border: 1px solid #e0e9f4;
+  border-radius: 20px;
+  color: #7387a3;
+}
+
+.sol-empty h3 {
+  color: #122d53;
+}
+
+.sol-empty-icon {
+  font-size: 42px;
+  color: #347bdf;
+}
+
+.sol-pagination {
+  justify-content: center;
+  margin-top: 25px;
+  font-size: 12px;
+  color: #6c7e98;
+}
+
+@media (max-width: 700px) {
+  .sol-hero {
+    padding: 30px 5%;
+  }
+
+  .sol-content {
+    width: 94%;
+    margin-top: 24px;
+  }
+
+  .sol-card {
+    padding: 18px;
+    border-radius: 17px;
+  }
+
+  .sol-card-top,
+  .sol-card-footer,
+  .sol-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sol-object-icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .sol-object-details h3 {
+    font-size: 18px;
+  }
+
+  .sol-details {
+    grid-template-columns: 1fr;
+  }
+
+  .sol-document,
+  .sol-review {
+    padding: 16px;
+  }
+
+  .sol-card-footer .sol-btn {
+    width: 100%;
+  }
+
+  .sol-total {
+    min-width: 100px;
+  }
+}
