@@ -1,92 +1,169 @@
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { authService } from "../../services/authService";
 
 export default function RecuperarSenhaScreen({ navigation }) {
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [focado, setFocado] = useState(false);
 
   async function enviar() {
+    if (carregando) return;
+
+    setErro("");
+    setSucesso("");
+
     if (!email.trim()) {
-      Alert.alert("Atenção", "Informe seu e-mail.");
+      setErro("Informe seu e-mail.");
       return;
     }
 
     try {
-      setLoading(true);
+      setCarregando(true);
 
-      await authService.forgotPassword(email.trim());
+      const response = await authService.forgotPassword(
+        email.trim()
+      );
 
-      Alert.alert(
-        "Solicitação enviada",
-        "Confira seu e-mail para continuar a recuperação da senha.",
+      setSucesso(
+        response?.msg ||
+          "Se o e-mail existir, as instruções foram enviadas."
       );
     } catch (error) {
-      Alert.alert("Erro", error.message);
+      setErro(
+        error.message ||
+          "Não foi possível solicitar a recuperação."
+      );
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.container}
+          contentContainerStyle={styles.page}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.back}>Voltar</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.title}>Recuperar senha</Text>
-
-          <Text style={styles.subtitle}>
-            Informe o e-mail cadastrado na sua conta.
-          </Text>
-
           <View style={styles.card}>
+            <LinearGradient
+              colors={["#071D49", "#1557B0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.topLine}
+            />
+
+            <Pressable
+              style={styles.backButton}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.getParent()?.goBack();
+                }
+              }}
+            >
+              <Text style={styles.backText}>← Voltar</Text>
+            </Pressable>
+
+            <View style={styles.header}>
+              <Text style={styles.badge}>
+                RECUPERAÇÃO DE ACESSO
+              </Text>
+
+              <Text style={styles.title}>
+                Esqueceu sua senha?
+              </Text>
+
+              <Text style={styles.description}>
+                Informe o e-mail utilizado no cadastro.
+                Enviaremos as instruções para redefinir
+                sua senha.
+              </Text>
+            </View>
+
+            {!!erro && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{erro}</Text>
+              </View>
+            )}
+
+            {!!sucesso && (
+              <View style={styles.successBox}>
+                <Text style={styles.successText}>
+                  {sucesso}
+                </Text>
+              </View>
+            )}
+
             <Text style={styles.label}>E-mail</Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                focado && styles.inputFocused,
+              ]}
+              placeholder="Digite seu e-mail cadastrado"
+              placeholderTextColor="#9CA8BA"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholder="seuemail@exemplo.com"
+              autoCorrect={false}
+              autoComplete="email"
+              onFocus={() => setFocado(true)}
+              onBlur={() => setFocado(false)}
             />
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={enviar}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Enviar recuperação</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("RedefinirSenha")}
-              style={{ paddingVertical: 18 }}
-            >
-              <Text style={styles.back}>Já tenho o código de recuperação</Text>
-            </TouchableOpacity>
+        <Pressable
+          onPress={enviar}
+          disabled={carregando}
+          style={[
+            styles.submitButton,
+            carregando && styles.disabled,
+          ]}
+        >
+          {carregando ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitText}>
+              Enviar instruções
+            </Text>
+          )}
+        </Pressable>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                Lembrou sua senha?
+              </Text>
+
+              <Pressable
+                onPress={() => navigation.navigate("Login")}
+              >
+                <Text style={styles.footerLink}>
+                  Voltar ao login
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -95,67 +172,188 @@ export default function RecuperarSenhaScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+
   safe: {
     flex: 1,
-    backgroundColor: "#F4F7FB",
+    backgroundColor: "#F4F7FC",
   },
 
-  container: {
+  page: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 40,
-  },
-
-  back: {
-    color: "#1468D8",
-    fontWeight: "800",
-    marginBottom: 45,
-  },
-
-  title: {
-    fontSize: 34,
-    fontWeight: "900",
-    color: "#061A40",
-  },
-
-  subtitle: {
-    color: "#64748B",
-    marginTop: 10,
-    marginBottom: 30,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 24,
+    backgroundColor: "#F4F7FC",
   },
 
   card: {
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 22,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E1E7F0",
+    paddingHorizontal: 22,
+    paddingVertical: 30,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#071D49",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+
+  topLine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+  },
+
+  backButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#F3F6FB",
+    borderWidth: 1,
+    borderColor: "#E2E8F1",
+    borderRadius: 9,
+    marginBottom: 28,
+  },
+
+  backText: {
+    color: "#071D49",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  header: {
+    marginBottom: 28,
+  },
+
+  badge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EDF3FC",
+    color: "#071D49",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.3,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+
+  title: {
+    fontSize: 27,
+    fontWeight: "800",
+    color: "#071D49",
+    letterSpacing: -0.7,
+    marginBottom: 10,
+  },
+
+  description: {
+    fontSize: 15,
+    lineHeight: 25,
+    color: "#6B7280",
   },
 
   label: {
+    color: "#111827",
+    fontSize: 13,
     fontWeight: "700",
-    color: "#334155",
     marginBottom: 8,
   },
 
   input: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#DCE6F2",
-    backgroundColor: "#F8FBFF",
-    borderRadius: 14,
+    minHeight: 52,
     paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: "#DBE3EF",
+    borderRadius: 11,
+    backgroundColor: "#FBFCFE",
+    color: "#111827",
+    fontSize: 16,
+    marginBottom: 18,
+  },
+
+  inputFocused: {
+    borderColor: "#1557B0",
+    backgroundColor: "#FFFFFF",
+  },
+
+  submitButton: {
+    width: "100%",
+    height: 54,
+    backgroundColor: "#1557B0",
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    elevation: 2,
+  },
+
+  submitText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  disabled: {
+    opacity: 0.6,
+  },
+
+  footer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 26,
+    paddingTop: 22,
+    borderTopWidth: 1,
+    borderTopColor: "#EDF0F5",
+  },
+
+  footerText: {
+    color: "#6B7280",
+    fontSize: 13,
+  },
+
+  footerLink: {
+    color: "#1557B0",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  errorBox: {
+    padding: 13,
+    backgroundColor: "#FFF1F0",
+    borderColor: "#FFD3CF",
+    borderWidth: 1,
+    borderRadius: 10,
     marginBottom: 20,
   },
 
-  button: {
-    height: 56,
-    backgroundColor: "#0B5CC6",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
+  errorText: {
+    color: "#B42318",
+    fontSize: 13,
   },
 
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "900",
+  successBox: {
+    padding: 13,
+    backgroundColor: "#EDF9F2",
+    borderColor: "#CCEBD9",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  successText: {
+    color: "#137A4B",
+    fontSize: 13,
   },
 });

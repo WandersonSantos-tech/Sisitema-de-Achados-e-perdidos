@@ -1,10 +1,12 @@
+
 import React, { useEffect, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
-  Pressable,
-  Text,
+  StyleSheet,
   View,
 } from "react-native";
+
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -33,90 +35,58 @@ export default function AppNavigator() {
   const { user, loading, logout } = useAuth();
 
   const iniciou = useRef(false);
-
-  const [pronto, setPronto] = useState(false);
+  const [preparando, setPreparando] = useState(true);
   const [erroInicial, setErroInicial] = useState("");
 
-  async function prepararLogin() {
-    setErroInicial("");
-
-    try {
-      await logout();
-      setPronto(true);
-    } catch (error) {
-      setErroInicial(
-        error.message || "Não foi possível preparar o acesso."
-      );
-    }
-  }
-
   useEffect(() => {
-    // Aguarda a recuperação da sessão antes de encerrá-la.
-    // Executa uma única vez, sem desconectar após um novo login.
     if (loading || iniciou.current) return;
 
     iniciou.current = true;
-    prepararLogin();
+
+    async function iniciar() {
+      try {
+        await logout();
+      } catch (error) {
+        setErroInicial(
+          error?.message || "Erro ao preparar o login."
+        );
+      } finally {
+        setPreparando(false);
+      }
+    }
+
+    iniciar();
   }, [loading, logout]);
 
-  if (loading || !pronto) {
+  if (loading || preparando) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 24,
-          backgroundColor: "#F4F7FB",
-        }}
-      >
-        {erroInicial ? (
-          <>
-            <Text
-              style={{
-                color: "#B42318",
-                textAlign: "center",
-                marginBottom: 16,
-              }}
-            >
-              {erroInicial}
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={prepararLogin}
-              style={{
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 10,
-                backgroundColor: "#1468D8",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontWeight: "700",
-                }}
-              >
-                Tentar novamente
-              </Text>
-            </Pressable>
-          </>
-        ) : (
-          <ActivityIndicator
-            size="large"
-            color="#1468D8"
-          />
-        )}
+      <View style={styles.loading}>
+        <ActivityIndicator
+          size="large"
+          color="#1468D8"
+        />
       </View>
     );
   }
 
+  const autenticado = Boolean(user);
+
   return (
-    <NavigationContainer linking={{ prefixes: ["ondeta://"], config: { screens: { RedefinirSenha: "redefinir-senha" } } }}>
+    <NavigationContainer
+      linking={{
+        prefixes: ["ondeta://"],
+        config: {
+          screens: {
+            RedefinirSenha: "redefinir-senha",
+          },
+        },
+      }}
+    >
       <Stack.Navigator
-        key={user ? "usuario" : "visitante"}
-        initialRouteName={user ? "UsuarioHome" : "Login"}
+        key={autenticado ? "usuario" : "visitante"}
+        initialRouteName={
+          autenticado ? "UsuarioHome" : "Login"
+        }
         screenOptions={{
           headerStyle: {
             backgroundColor: "#F4F7FB",
@@ -129,13 +99,18 @@ export default function AppNavigator() {
           },
         }}
       >
-        {user ? (
+        {autenticado ? (
           <Stack.Group navigationKey="user">
-            <Stack.Screen name="TwoFactor" component={TwoFactor} options={{title: "Segurança"}} />
             <Stack.Screen
               name="UsuarioHome"
               component={Home}
               options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="TwoFactor"
+              component={TwoFactor}
+              options={{ title: "Segurança" }}
             />
 
             <Stack.Screen
@@ -205,14 +180,14 @@ export default function AppNavigator() {
               component={Cadastro}
               options={{ headerShown: false }}
             />
+
+            <Stack.Screen
+              name="RecuperarSenha"
+              component={RecuperarSenha}
+              options={{ headerShown: false }}
+            />
           </Stack.Group>
         )}
-
-        <Stack.Screen
-          name="RecuperarSenha"
-          component={RecuperarSenha}
-          options={{ headerShown: false }}
-        />
 
         <Stack.Screen
           name="RedefinirSenha"
@@ -223,3 +198,12 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F4F7FB",
+  },
+});

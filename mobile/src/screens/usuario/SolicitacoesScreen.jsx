@@ -178,7 +178,7 @@ function BasicButton({
 
 function FotoObjeto({ photo, title }) {
   const [falhou, setFalhou] = useState(false);
-  const uri = imageURL(photo.image_url);
+  const uri = imageURL(photo?.image_url);
 
   if (!uri || falhou) {
     return (
@@ -807,458 +807,142 @@ export default function SolicitacoesScreen({ navigation }) {
     return nomes[status] || status || "Não informado";
   }
 
+  const statusInfo = (s) => {
+    if (s.returned_at) return { label: "Devolvido", kind: "done" };
+    const values = {
+      CORRESPONDENCIA: ["Correspondência recebida", "waiting"],
+      PENDENTE: ["Em análise", "waiting"],
+      APROVADA: ["Aguardando retirada", "progress"],
+      REJEITADA: ["Rejeitada", "closed"],
+      CANCELADA: ["Cancelada", "closed"],
+    };
+    const [label, kind] = values[s.status] || [(s.status || "Em andamento").replace(/_/g, " "), "progress"];
+    return { label, kind };
+  };
+
   return (
-    <SafeAreaView
-      style={styles.safe}
-      edges={["top", "left", "right"]}
-    >
-      <SafeAreaView
-        style={styles.body}
-        edges={["bottom"]}
-      >
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={
-            Platform.OS === "ios" ? "padding" : undefined
-          }
-        >
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.page}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View
-              style={[
-                styles.header,
-                {
-                  flexDirection: columnHeader
-                    ? "column"
-                    : "row",
-                  alignItems: columnHeader
-                    ? "flex-start"
-                    : "center",
-                  gap: compactContent ? 12 : 30,
-                },
-              ]}
-            >
-              <HeaderBackground />
-
-              <View style={styles.headerContent}>
-                <Txt style={styles.brand}>
-                  Onde
-                  <Txt style={styles.brandAccent}>Tá</Txt>
-                </Txt>
-
-                <Txt
-                  accessibilityRole="header"
-                  style={[
-                    styles.title,
-                    {
-                      fontSize: columnHeader ? 29 : 36,
-                    },
-                  ]}
-                >
-                  Minhas solicitações
-                </Txt>
-
-                <Txt style={styles.headerDescription}>
-                  Acompanhe suas solicitações e converse com o
-                  funcionário.
-                </Txt>
+    <SafeAreaView style={modern.safe} edges={["top", "left", "right"]}>
+      <SafeAreaView style={modern.body} edges={["bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={modern.page}>
+            <View style={modern.hero}>
+              <View style={modern.heroInner}>
+                <Txt style={modern.brand}>Onde<Txt style={modern.brandAccent}>Tá</Txt></Txt>
+                <View style={modern.heroTag}><Txt style={modern.heroTagText}>ÁREA DO USUÁRIO</Txt></View>
+                <Txt style={modern.heroTitle}>Minhas solicitações</Txt>
+                <Txt style={modern.heroDescription}>Acompanhe suas correspondências, documentos e devoluções em um só lugar.</Txt>
+                <Pressable onPress={() => navigation.navigate("UsuarioHome")} style={modern.backButton}>
+                  <Txt style={modern.backText}>← Voltar ao início</Txt>
+                </Pressable>
               </View>
-
-              <Pressable
-                accessibilityRole="button"
-                onPress={() =>
-                  navigation.navigate("UsuarioHome")
-                }
-                style={({ pressed }) => [
-                  styles.backButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Txt style={styles.backButtonText}>
-                  Voltar ao início
-                </Txt>
-              </Pressable>
             </View>
-
-            <View
-              style={[
-                styles.main,
-                compactContent && {
-                  padding: 16,
-                },
-              ]}
-            >
-              <Txt
-                accessibilityRole="header"
-                style={[
-                  styles.sectionTitle,
-                  {
-                    marginTop: compactContent ? 20 : 0,
-                  },
-                ]}
-              >
-                Solicitações
-              </Txt>
-
-              {carregando && (
-                <Txt style={styles.paragraph}>
-                  Carregando solicitações...
-                </Txt>
+            <View style={modern.content}>
+              <View style={modern.overview}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Txt style={modern.eyebrow}>CENTRAL DE ACOMPANHAMENTO</Txt>
+                  <Txt style={modern.overviewTitle}>Suas solicitações</Txt>
+                  <Txt style={modern.muted}>Confira o andamento e os próximos passos de cada objeto.</Txt>
+                </View>
+                <View style={modern.totalBox}>
+                  <Txt style={modern.totalNumber}>{total}</Txt>
+                  <Txt style={modern.totalLabel}>Solicitações</Txt>
+                </View>
+              </View>
+              {!!erro && <View style={modern.errorBox}><Txt style={modern.errorText}>{erro}</Txt></View>}
+              {carregando && <View style={modern.empty}><ActivityIndicator color="#1554b5"/><Txt style={modern.muted}>Carregando suas solicitações...</Txt></View>}
+              {!carregando && !erro && solicitacoes.length === 0 && (
+                <View style={modern.empty}>
+                  <Txt style={modern.emptyIcon}>◇</Txt>
+                  <Txt style={modern.emptyTitle}>Nenhuma solicitação por enquanto</Txt>
+                  <Txt style={modern.muted}>Quando uma correspondência for enviada, ela aparecerá aqui.</Txt>
+                </View>
               )}
-
-              {!!erro && (
-                <Txt
-                  accessibilityRole="alert"
-                  style={styles.paragraph}
-                >
-                  {erro}
-                </Txt>
-              )}
-
-              {!carregando &&
-                !erro &&
-                solicitacoes.length === 0 && (
-                  <Txt style={styles.paragraph}>
-                    Nenhuma solicitação realizada.
-                  </Txt>
-                )}
-
-              {solicitacoes.map((solicitacao) => {
-                const avaliacao =
-                  avaliacoes[solicitacao.id];
-
-                const avaliacaoEnviada =
-                  typeof avaliacao === "string";
-
-                const conversaVisivel =
-                  conversaAberta === solicitacao.id &&
-                  contatos[solicitacao.id];
-
+              {solicitacoes.map((s) => {
+                const objeto = s.lost_item || s.item || {};
+                const status = statusInfo(s);
+                const imagens = objeto.images || [];
+                const encerrada = ["REJEITADA", "CANCELADA"].includes(s.status);
+                const avaliacao = avaliacoes[s.id];
+                const avaliacaoEnviada = typeof avaliacao === "string";
+                const conversaVisivel = conversaAberta === s.id && contatos[s.id];
                 return (
-                  <View
-                    key={solicitacao.id}
-                    style={styles.card}
-                  >
-                    <Txt
-                      accessibilityRole="header"
-                      style={styles.itemTitle}
-                    >
-                      {solicitacao.item?.title || "Objeto"}
-                    </Txt>
-
-                    <Txt style={styles.itemDescription}>
-                      {solicitacao.item?.description}
-                    </Txt>
-
-                    <View style={styles.photos}>
-                      {(solicitacao.item?.images || []).map(
-                        (photo, index) => (
-                          <FotoObjeto
-                            key={photo.id || index}
-                            photo={photo}
-                            title={solicitacao.item?.title}
-                          />
-                        )
-                      )}
-                    </View>
-
-                    <Txt style={styles.paragraph}>
-                      <Txt style={styles.bold}>Status:</Txt>{" "}
-                      {solicitacao.returned_at
-                        ? "Devolvido"
-                        : formatarStatus(
-                            solicitacao.status
-                          )}
-                    </Txt>
-
-                    {!!solicitacao.pickup_at && !solicitacao.returned_at && <ReturnSignatureStatus claimId={solicitacao.id} />}
-                    {!!solicitacao.pickup_at && (
-                      <Txt style={styles.paragraph}>
-                        Retirada agendada:{" "}
-                        {new Date(
-                          solicitacao.pickup_at
-                        ).toLocaleString("pt-BR")}
-                      </Txt>
-                    )}
-
-                    <Txt style={styles.paragraph}>
-                      <Txt style={styles.bold}>Local:</Txt>{" "}
-                      {solicitacao.item?.location_name ||
-                        "Não informado"}
-                    </Txt>
-
-                    <Txt style={styles.paragraph}>
-                      <Txt style={styles.bold}>
-                        Informações enviadas:
-                      </Txt>{" "}
-                      {solicitacao.proof_description}
-                    </Txt>
-
-                    {!!solicitacao.returned_at && (
-                      <View>
-                        <Txt
-                          accessibilityRole="header"
-                          style={styles.reviewTitle}
-                        >
-                          Avaliar devolução
-                        </Txt>
-
-                        <View style={styles.reviewForm}>
-                          <View style={styles.reviewField}>
-                            <Txt>Nota</Txt>
-
-                            <Pressable
-                              accessibilityRole="button"
-                              accessibilityLabel={`Selecionar nota. Nota atual ${
-                                notas[solicitacao.id] ?? 5
-                              }`}
-                              onPress={() =>
-                                setSelecionandoNota(
-                                  solicitacao.id
-                                )
-                              }
-                              style={styles.ratingSelect}
-                            >
-                              <Txt>
-                                {notas[solicitacao.id] ?? 5}
-                              </Txt>
-                              <Txt style={styles.ratingArrow}>
-                                ▾
-                              </Txt>
-                            </Pressable>
-                          </View>
-
-                          <View style={styles.reviewField}>
-                            <Txt>Comentário</Txt>
-
-                            <TextInput
-                              accessibilityLabel="Comentário da avaliação"
-                              value={
-                                comentarios[
-                                  solicitacao.id
-                                ] || ""
-                              }
-                              onChangeText={(value) =>
-                                setComentarios(
-                                  (previous) => ({
-                                    ...previous,
-                                    [solicitacao.id]:
-                                      value,
-                                  })
-                                )
-                              }
-                              maxLength={1000}
-                              style={styles.reviewInput}
-                            />
-                          </View>
-
-                          <BasicButton
-                            title="Enviar avaliação"
-                            disabled={
-                              avaliacaoEnviada ||
-                              Boolean(
-                                enviandoAvaliacao[
-                                  solicitacao.id
-                                ]
-                              )
-                            }
-                            onPress={() =>
-                              enviarAvaliacao(
-                                solicitacao
-                              )
-                            }
-                          />
+                  <View key={s.id} style={modern.card}>
+                    <View style={modern.cardTop}>
+                      <View style={modern.objectRow}>
+                        <View style={modern.objectIcon}><Txt style={modern.diamond}>◇</Txt></View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Txt style={modern.eyebrow}>OBJETO CADASTRADO</Txt>
+                          <Txt style={modern.objectTitle}>{objeto.title || "Objeto"}</Txt>
+                          {!!objeto.description && <Txt style={modern.objectDescription}>{objeto.description}</Txt>}
                         </View>
-
-                        {avaliacaoEnviada && (
-                          <Txt
-                            accessibilityLiveRegion="polite"
-                            style={styles.paragraph}
-                          >
-                            {avaliacao}
-                          </Txt>
-                        )}
-
-                        <BasicButton
-                          title="Ver avaliações"
-                          onPress={() =>
-                            verAvaliacoes(solicitacao)
-                          }
-                          style={{ marginTop: 8 }}
-                        />
-
-                        {Array.isArray(avaliacao) &&
-                          avaliacao.map((review) => (
-                            <Txt
-                              key={review.id}
-                              style={styles.paragraph}
-                            >
-                              {review.rating}/5 ·{" "}
-                              {review.comment ||
-                                "Sem comentário"}
-                            </Txt>
-                          ))}
+                      </View>
+                      <View style={[modern.status, modern["status_" + status.kind]]}>
+                        <View style={[modern.statusDot, modern["dot_" + status.kind]]}/>
+                        <Txt style={[modern.statusText, modern["text_" + status.kind]]}>{status.label}</Txt>
+                      </View>
+                    </View>
+                    {imagens.length > 0 && (
+                      <View style={modern.gallery}>
+                        {imagens.map((photo, index) => <FotoObjeto key={photo.id || index} photo={photo} title={objeto.title}/>)}
                       </View>
                     )}
+                    <View style={[modern.details, width > 700 && { flexDirection: "row" }]}>
+                      <View style={modern.detail}>
+                        <View style={modern.detailIcon}><Txt style={modern.detailSymbol}>⌖</Txt></View>
+                        <View style={{ flex: 1 }}><Txt style={modern.detailLabel}>Local do registro</Txt><Txt style={modern.detailValue}>{objeto.location_name || "Não informado"}</Txt></View>
+                      </View>
+                      <View style={modern.detail}>
+                        <View style={modern.detailIcon}><Txt style={modern.detailSymbol}>◷</Txt></View>
+                        <View style={{ flex: 1 }}><Txt style={modern.detailLabel}>Retirada</Txt><Txt style={modern.detailValue}>{s.pickup_at ? new Date(s.pickup_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Ainda não agendada"}</Txt></View>
+                      </View>
+                    </View>
+                    {!!s.pickup_at && (
+                    <View style={modern.document}>
+                      <View style={modern.documentHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Txt style={modern.eyebrow}>DOCUMENTAÇÃO</Txt>
+                          <Txt style={modern.documentTitle}>
+                            Termo de devolução
+                          </Txt>
+                          <Txt style={modern.muted}>
+                            Consulte e assine seu documento eletrônico.
+                          </Txt>
+                        </View>
 
-                    {![
-                      "REJEITADA",
-                      "CANCELADA",
-                    ].includes(solicitacao.status) && (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          expanded: Boolean(
-                            conversaVisivel
-                          ),
-                          disabled:
-                            abrindoContato ===
-                            solicitacao.id,
-                        }}
-                        onPress={() =>
-                          abrirConversa(solicitacao)
-                        }
-                        disabled={
-                          abrindoContato ===
-                          solicitacao.id
-                        }
-                        style={({ pressed }) => [
-                          styles.conversationButton,
-                          abrindoContato ===
-                            solicitacao.id &&
-                            styles.disabled,
-                          pressed && styles.pressed,
-                        ]}
-                      >
-                        <Txt
-                          style={
-                            styles.conversationButtonText
-                          }
-                        >
-                          {conversaAberta ===
-                          solicitacao.id
-                            ? "Fechar conversa"
-                            : "Conversar com funcionário"}
-                        </Txt>
-                      </Pressable>
-                    )}
+                        <View style={modern.documentIcon}>
+                          <Txt style={modern.documentSymbol}>▤</Txt>
+                        </View>
+                      </View>
 
-                    {!!conversaVisivel && (
-                      <ClaimChatMobile
-                        itemId={solicitacao.item_id}
-                        interlocutorId={
-                          contatos[solicitacao.id].id
-                        }
-                        interlocutorNome={
-                          contatos[solicitacao.id].name
-                        }
-                      />
+                      <ReturnSignatureStatus claimId={s.id} />
+                    </View>
+                  )}
+
+
+                    
+                    {!encerrada && (
+                      <View style={modern.footer}>
+                        <View style={modern.footerNote}><View style={modern.onlineDot}/><Txt style={modern.muted}>Atendimento e acompanhamento</Txt></View>
+                        <Pressable disabled={abrindoContato === s.id} onPress={() => abrirConversa(s)} style={[modern.primaryButton, abrindoContato === s.id && { opacity: 0.5 }]}>
+                          <Txt style={modern.primaryText}>{abrindoContato === s.id ? "Abrindo conversa..." : conversaAberta === s.id ? "Fechar conversa ↑" : "Conversar com funcionário →"}</Txt>
+                        </Pressable>
+                      </View>
                     )}
+                    {!!conversaVisivel && <View style={modern.chatWrap}><ClaimChatMobile itemId={s.item_id} interlocutorId={contatos[s.id].id} interlocutorNome={contatos[s.id].name}/></View>}
                   </View>
                 );
               })}
-
-              <View style={styles.pagination}>
-                <BasicButton
-                  title="Anterior"
-                  disabled={carregando || page <= 1}
-                  onPress={() =>
-                    setPage((previous) => previous - 1)
-                  }
-                />
-
-                <Txt>Página {page}</Txt>
-
-                <BasicButton
-                  title="Próxima"
-                  disabled={
-                    carregando || page * 20 >= total
-                  }
-                  onPress={() =>
-                    setPage((previous) => previous + 1)
-                  }
-                />
-              </View>
+              {total > 20 && (
+                <View style={modern.pagination}>
+                  <Pressable disabled={carregando || page <= 1} onPress={() => setPage((old) => old - 1)} style={modern.secondaryButton}><Txt style={modern.secondaryText}>← Anterior</Txt></Pressable>
+                  <Txt style={modern.muted}>Página {page} de {Math.ceil(total / 20)}</Txt>
+                  <Pressable disabled={carregando || page * 20 >= total} onPress={() => setPage((old) => old + 1)} style={modern.secondaryButton}><Txt style={modern.secondaryText}>Próxima →</Txt></Pressable>
+                </View>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-
-      <Modal
-        visible={selecionandoNota !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setSelecionandoNota(null)
-        }
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fechar seleção de nota"
-            style={StyleSheet.absoluteFillObject}
-            onPress={() =>
-              setSelecionandoNota(null)
-            }
-          />
-
-          <View style={styles.ratingModal}>
-            <Txt style={styles.ratingModalTitle}>
-              Nota
-            </Txt>
-
-            {[1, 2, 3, 4, 5].map((nota) => {
-              const selected =
-                (notas[selecionandoNota] ?? 5) ===
-                nota;
-
-              return (
-                <Pressable
-                  key={nota}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => {
-                    const id = selecionandoNota;
-
-                    setNotas((previous) => ({
-                      ...previous,
-                      [id]: nota,
-                    }));
-
-                    setSelecionandoNota(null);
-                  }}
-                  style={[
-                    styles.ratingOption,
-                    selected &&
-                      styles.ratingOptionSelected,
-                  ]}
-                >
-                  <Txt
-                    style={[
-                      styles.ratingOptionText,
-                      selected && {
-                        color: "#1554B4",
-                        fontWeight: "700",
-                      },
-                    ]}
-                  >
-                    {nota}
-                  </Txt>
-
-                  {selected && (
-                    <Txt style={{ color: "#1554B4" }}>
-                      ✓
-                    </Txt>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -1780,4 +1464,89 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#285CA3",
   },
+});
+
+
+// Estilos da tela web Solicitações, adaptados para React Native.
+const modern = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#071b3d" },
+  body: { flex: 1, backgroundColor: "#f3f7fd" },
+  page: { flexGrow: 1, backgroundColor: "#f3f7fd", paddingBottom: 60 },
+  hero: { backgroundColor: "#0b3474", paddingVertical: 30, paddingHorizontal: 20 },
+  heroInner: { width: "100%", maxWidth: 1060, alignSelf: "center" },
+  brand: { color: "white", fontWeight: "900", fontSize: 20 },
+  brandAccent: { color: "#3f9cff" },
+  heroTag: { alignSelf: "flex-start", marginTop: 22, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.10)" },
+  heroTagText: { color: "#b9d7ff", fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
+  heroTitle: { color: "white", fontSize: 30, fontWeight: "800", marginTop: 16, letterSpacing: -0.8 },
+  heroDescription: { color: "#c8d9f1", fontSize: 14, lineHeight: 22, marginTop: 8 },
+  backButton: { alignSelf: "flex-start", marginTop: 20, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: "#7194c4" },
+  backText: { color: "white", fontSize: 13, fontWeight: "700" },
+  content: { width: "94%", maxWidth: 1060, alignSelf: "center", marginTop: 24 },
+  overview: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
+  eyebrow: { color: "#1261d2", fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
+  overviewTitle: { color: "#0a2145", fontSize: 25, fontWeight: "800", marginTop: 8, marginBottom: 5 },
+  muted: { color: "#788ba6", fontSize: 13, lineHeight: 20 },
+  totalBox: { minWidth: 86, alignItems: "center", backgroundColor: "white", borderWidth: 1, borderColor: "#e0e9f6", borderRadius: 17, paddingVertical: 13, paddingHorizontal: 12 },
+  totalNumber: { fontSize: 26, fontWeight: "800", color: "#0d4ca5" },
+  totalLabel: { fontSize: 10, color: "#8292a9" },
+  card: { backgroundColor: "white", borderWidth: 1, borderColor: "#e1e9f4", borderRadius: 18, padding: 18, marginBottom: 20, shadowColor: "#113364", shadowOpacity: 0.05, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+  cardTop: { gap: 14 },
+  objectRow: { flexDirection: "row", alignItems: "center", gap: 13 },
+  objectIcon: { width: 58, height: 58, borderRadius: 16, backgroundColor: "#eaf2ff", alignItems: "center", justifyContent: "center" },
+  diamond: { color: "#1466d9", fontSize: 36 },
+  objectTitle: { color: "#0a2145", fontSize: 19, fontWeight: "800", marginTop: 6, marginBottom: 4 },
+  objectDescription: { color: "#70819b", fontSize: 13, lineHeight: 20 },
+  status: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 8, borderRadius: 100, paddingHorizontal: 13, paddingVertical: 9 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 11, fontWeight: "800" },
+  status_done: {
+    backgroundColor: "#e0f8ea",
+  },
+  dot_done: {
+    backgroundColor: "#16844c",
+  },
+  text_done: {
+    color: "#16844c",
+  },
+  status_done: { backgroundColor: "#e0f8ea" }, dot_done: { backgroundColor: "#16844c" }, text_done: { color: "#16844c" },
+  status_waiting: { backgroundColor: "#fff3d9" }, dot_waiting: { backgroundColor: "#a66a00" }, text_waiting: { color: "#a66a00" },
+  status_progress: { backgroundColor: "#e8f1ff" }, dot_progress: { backgroundColor: "#155bc0" }, text_progress: { color: "#155bc0" },
+  status_closed: { backgroundColor: "#f2f3f6" }, dot_closed: { backgroundColor: "#697386" }, text_closed: { color: "#697386" },
+  gallery: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
+  details: { gap: 12, marginTop: 22 },
+  detail: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#f6f9fe", borderWidth: 1, borderColor: "#edf2f9", borderRadius: 13, padding: 14 },
+  detailIcon: { width: 34, height: 34, backgroundColor: "#e5efff", borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  detailSymbol: { color: "#1766cf", fontSize: 22 },
+  detailLabel: { color: "#8190a6", fontSize: 11 },
+  detailValue: { color: "#203d64", fontSize: 12, fontWeight: "800", marginTop: 5 },
+  document: { marginTop: 22, borderWidth: 1, borderColor: "#e0e9f5", borderRadius: 17, padding: 16, backgroundColor: "#fbfdff" },
+  documentHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
+  documentTitle: { color: "#102a50", fontSize: 17, fontWeight: "800", marginVertical: 7 },
+  documentIcon: { width: 43, height: 43, borderRadius: 12, backgroundColor: "#e7f0ff", alignItems: "center", justifyContent: "center" },
+  documentSymbol: { color: "#1b66cf", fontSize: 26 },
+  footer: { borderTopWidth: 1, borderTopColor: "#edf1f7", marginTop: 24, paddingTop: 20, gap: 15 },
+  footerNote: { flexDirection: "row", alignItems: "center", gap: 9 },
+  onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#20a77c" },
+  primaryButton: { backgroundColor: "#1559bc", borderRadius: 10, paddingHorizontal: 17, paddingVertical: 14, alignItems: "center" },
+  primaryText: { color: "white", fontSize: 13, fontWeight: "800" },
+  secondaryButton: { backgroundColor: "#edf4ff", borderWidth: 1, borderColor: "#d9e6fb", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  secondaryText: { color: "#1554b5", fontSize: 12, fontWeight: "800" },
+  review: { marginTop: 24, padding: 16, backgroundColor: "#f7faff", borderWidth: 1, borderColor: "#e2ebf7", borderRadius: 17 },
+  stars: { flexDirection: "row", alignItems: "center", gap: 5, marginVertical: 14 },
+  star: { fontSize: 29, color: "#cbd5e1" },
+  starSelected: { color: "#f3b324" },
+  ratingValue: { color: "#697c97", fontSize: 12, fontWeight: "800", marginLeft: 8 },
+  reviewInput: { minHeight: 86, padding: 14, borderWidth: 1, borderColor: "#d9e3f1", borderRadius: 11, backgroundColor: "white", color: "#0c2446", fontSize: 13, textAlignVertical: "top" },
+  reviewActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 13 },
+  successBox: { marginTop: 15, backgroundColor: "#e4f8ec", padding: 13, borderRadius: 10 },
+  successText: { color: "#137345", fontSize: 13, fontWeight: "700" },
+  reviewEntry: { color: "#203d64", fontSize: 13, borderTopWidth: 1, borderTopColor: "#e2e9f2", paddingTop: 12, marginTop: 12 },
+  chatWrap: { marginTop: 22, borderTopWidth: 1, borderTopColor: "#edf1f7", paddingTop: 20 },
+  pagination: { flexDirection: "row", justifyContent: "center", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 20 },
+  empty: { padding: 28, backgroundColor: "white", borderWidth: 1, borderColor: "#e0e9f4", borderRadius: 20, alignItems: "center", gap: 12 },
+  emptyIcon: { color: "#347bdf", fontSize: 42 },
+  emptyTitle: { color: "#122d53", fontSize: 18, fontWeight: "800", textAlign: "center" },
+  errorBox: { padding: 15, marginBottom: 20, borderWidth: 1, borderColor: "#fecaca", backgroundColor: "#fff1f2", borderRadius: 12 },
+  errorText: { color: "#b42318", fontSize: 13 },
 });

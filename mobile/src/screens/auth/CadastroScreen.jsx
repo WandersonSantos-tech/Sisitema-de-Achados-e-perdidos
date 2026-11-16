@@ -209,83 +209,7 @@ export default function CadastroScreen({ navigation }) {
             });
           }}
         >
-          <Svg
-            width="100%"
-            height="100%"
-            style={StyleSheet.absoluteFillObject}
-            pointerEvents="none"
-          >
-            <Defs>
-              <LinearGradient
-                id="cadastroBackground"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <Stop offset="0%" stopColor="#EEF4FC" />
-                <Stop offset="50%" stopColor="#F8FAFF" />
-                <Stop offset="100%" stopColor="#EDF3FB" />
-              </LinearGradient>
-
-              <RadialGradient
-                id="cadastroGlowOne"
-                gradientUnits="userSpaceOnUse"
-                cx={backgroundSize.width * 0.15}
-                cy={backgroundSize.height * 0.2}
-                rx={radialRadius}
-                ry={radialRadius}
-              >
-                <Stop
-                  offset="0%"
-                  stopColor="#1557B0"
-                  stopOpacity={0.12}
-                />
-                <Stop
-                  offset="100%"
-                  stopColor="#1557B0"
-                  stopOpacity={0}
-                />
-              </RadialGradient>
-
-              <RadialGradient
-                id="cadastroGlowTwo"
-                gradientUnits="userSpaceOnUse"
-                cx={backgroundSize.width * 0.9}
-                cy={backgroundSize.height * 0.8}
-                rx={radialRadius}
-                ry={radialRadius}
-              >
-                <Stop
-                  offset="0%"
-                  stopColor="#071D49"
-                  stopOpacity={0.1}
-                />
-                <Stop
-                  offset="100%"
-                  stopColor="#071D49"
-                  stopOpacity={0}
-                />
-              </RadialGradient>
-            </Defs>
-
-            <Rect
-              width="100%"
-              height="100%"
-              fill="url(#cadastroBackground)"
-            />
-            <Rect
-              width="100%"
-              height="100%"
-              fill="url(#cadastroGlowOne)"
-            />
-            <Rect
-              width="100%"
-              height="100%"
-              fill="url(#cadastroGlowTwo)"
-            />
-          </Svg>
-
+        
           <View
             style={[
               styles.card,
@@ -416,19 +340,13 @@ export default function CadastroScreen({ navigation }) {
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ disabled: carregando }}
                 onPress={handleSubmit}
                 disabled={carregando}
-                style={({ pressed }) => [
+                style={[
                   styles.submitButton,
                   carregando && styles.submitButtonDisabled,
-                  pressed &&
-                    !carregando &&
-                    styles.submitButtonPressed,
                 ]}
               >
-                <Gradiente />
-
                 <Text style={styles.submitButtonText}>
                   {carregando ? "Criando conta..." : "Criar conta"}
                 </Text>
@@ -470,15 +388,17 @@ const styles = StyleSheet.create({
 
   page: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 50,
+    paddingHorizontal: 14,
     backgroundColor: "#F4F7FC",
   },
 
   pageSmall: {
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 50,
     paddingHorizontal: 14,
   },
 
@@ -601,17 +521,14 @@ const styles = StyleSheet.create({
   },
 
   submitButton: {
-    position: "relative",
     width: "100%",
+    minHeight: 54,
     marginTop: 8,
-    paddingVertical: 15,
     paddingHorizontal: 18,
     borderRadius: 11,
-    overflow: "hidden",
+    backgroundColor: "#1557B0",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1557B0",
-    boxShadow: "0px 9px 22px rgba(21, 87, 176, 0.22)",
   },
 
   submitButtonDisabled: {

@@ -173,12 +173,15 @@ export default function LoginScreen({ navigation }) {
     try {
       const result = await login(email.trim(), senha, challenge, code);
       if (result?.requires_2fa) setChallenge(result.challenge_token);
-    } catch (error) {
+        } catch (error) {
       if (isMounted.current) {
+        const status = error?.status;
+
         setErro(
-          error?.response?.data?.detail ||
-            error.message ||
-            "Não foi possível realizar o acesso. Verifique suas credenciais."
+          status === 401
+            ? "E-mail ou senha inválidos."
+            : error?.message ||
+                "Não foi possível realizar o acesso."
         );
       }
     } finally {

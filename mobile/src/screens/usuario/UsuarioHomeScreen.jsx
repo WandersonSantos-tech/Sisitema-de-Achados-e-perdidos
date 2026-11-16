@@ -327,14 +327,10 @@ function Brand({ small = false, footer = false, layout }) {
             width: small ? 40 : layout.logoSize,
             height: small ? 40 : layout.logoSize,
             borderRadius: small ? 15 : layout.logoRadius,
+            backgroundColor: "#104A9E",
           },
         ]}
       >
-        <Paint
-          colors={[COLORS.navy900, COLORS.blue600]}
-          angle={145}
-        />
-
         <Txt style={styles.brandLogoText}>OT</Txt>
       </View>
 
@@ -400,9 +396,9 @@ function getLayout(width) {
       : phone
         ? 18
         : width * (intermediate ? 0.03 : 0.05),
-    logoSize: tiny ? 38 : phone ? 41 : 46,
+    logoSize: tiny ? 44 : phone ? 46 : 46,
     logoRadius: phone ? 13 : 15,
-    brandSize: tiny ? 17 : phone ? 19 : 22,
+    brandSize: tiny ? 22 : phone ? 23 : 24,
     iconSize: tiny ? 40 : 44,
     heroFont,
     heroPaddingV: tiny ? 31 : phone ? 38 : tablet ? 48 : intermediate ? 52 : 62,
@@ -2169,7 +2165,7 @@ const styles = StyleSheet.create({
 
   brandLogoText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "900",
     letterSpacing: 0.5,
   },
@@ -2974,8 +2970,11 @@ const styles = StyleSheet.create({
   },
 
   lostStatusReturned: {
-    color: COLORS.text900,
-    backgroundColor: "transparent",
+    color: "#16844C",
+    backgroundColor: "#E0F8EA",
+    borderWidth: 1,
+    borderColor: "#BDEBCF",
+    overflow: "hidden",
   },
 
   newItemButton: {

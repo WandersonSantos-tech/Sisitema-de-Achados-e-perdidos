@@ -1,76 +1,98 @@
-import { useAuth } from "../../contexts/AuthContext";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { authService } from "../../services/authService";
+import { useAuth } from "../../contexts/AuthContext";
 
-export default function RedefinirSenhaScreen({ navigation, route }) {
+export default function RedefinirSenhaScreen({
+  navigation,
+  route,
+}) {
   const { user, logout } = useAuth();
-  const [token, setToken] = useState(route?.params?.token || "");
 
+  const tokenDaUrl = route?.params?.token || "";
+
+  const [token, setToken] = useState(tokenDaUrl);
   const [novaSenha, setNovaSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] =
+    useState("");
+
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  async function redefinirSenha() {
-    if (!token.trim()) {
-      Alert.alert("Atenção", "Informe o token de recuperação.");
-
+  async function voltarLogin() {
+    if (user) {
+      await logout();
       return;
     }
 
-    if (!novaSenha.trim() || !confirmarSenha.trim()) {
-      Alert.alert("Atenção", "Preencha os campos de senha.");
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    }
+  }
 
+  async function redefinirSenha() {
+    if (carregando) return;
+
+    setErro("");
+    setSucesso("");
+
+    if (!token.trim()) {
+      setErro("Token de recuperação não informado.");
       return;
     }
 
     if (novaSenha.length < 8) {
-      Alert.alert("Atenção", "A senha deve ter pelo menos 8 caracteres.");
+      setErro(
+        "A nova senha deve possuir pelo menos 8 caracteres."
+      );
       return;
     }
-    if (novaSenha !== confirmarSenha) {
-      Alert.alert("Atenção", "As senhas não são iguais.");
 
+    if (novaSenha !== confirmarSenha) {
+      setErro("As senhas informadas não são iguais.");
       return;
     }
 
     try {
       setCarregando(true);
 
-      await authService.resetPassword(token.trim(), novaSenha);
+      const response = await authService.resetPassword(
+        token.trim(),
+        novaSenha
+      );
 
-      Alert.alert("Senha alterada", "Sua senha foi redefinida com sucesso.", [
-        {
-          text: "Entrar",
-          onPress: async () => {
-            if (user) {
-              await logout();
-              return;
-            }
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: "Login",
-                },
-              ],
-            });
-          },
-        },
-      ]);
+      setSucesso(
+        response?.msg || "Senha redefinida com sucesso."
+      );
+
+      setTimeout(() => {
+        voltarLogin();
+      }, 1500);
     } catch (error) {
-      Alert.alert("Não foi possível alterar a senha", error.message);
+      setErro(
+        error.message ||
+          "Não foi possível redefinir a senha."
+      );
     } finally {
       setCarregando(false);
     }
@@ -84,63 +106,127 @@ export default function RedefinirSenhaScreen({ navigation, route }) {
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.container}
+          contentContainerStyle={styles.page}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.back}>Voltar</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.title}>Redefinir senha</Text>
-
-          <Text style={styles.subtitle}>
-            Informe o código de recuperação e escolha sua nova senha.
-          </Text>
-
           <View style={styles.card}>
-            <Text style={styles.label}>Código de recuperação</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Digite o token"
-              placeholderTextColor="#94A3B8"
-              value={token}
-              onChangeText={setToken}
-              autoCapitalize="none"
+            <LinearGradient
+              colors={["#071D49", "#1557B0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.topLine}
             />
 
-            <Text style={styles.label}>Nova senha</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Digite sua nova senha"
-              placeholderTextColor="#94A3B8"
-              value={novaSenha}
-              onChangeText={setNovaSenha}
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>Confirmar nova senha</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Digite a senha novamente"
-              placeholderTextColor="#94A3B8"
-              value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
-              secureTextEntry
-            />
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={redefinirSenha}
-              disabled={carregando}
+            <Pressable
+              style={styles.backButton}
+              onPress={voltarLogin}
             >
+              <Text style={styles.backText}>
+                ← Voltar
+              </Text>
+            </Pressable>
+
+            <View style={styles.header}>
+              <Text style={styles.badge}>NOVA SENHA</Text>
+
+              <Text style={styles.title}>
+                Redefinir senha
+              </Text>
+
+              <Text style={styles.description}>
+                Escolha uma nova senha para acessar sua
+                conta.
+              </Text>
+            </View>
+
+            {!!erro && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>
+                  {erro}
+                </Text>
+              </View>
+            )}
+
+            {!!sucesso && (
+              <View style={styles.successBox}>
+                <Text style={styles.successText}>
+                  {sucesso}
+                </Text>
+              </View>
+            )}
+
+            {!tokenDaUrl && (
+              <View style={styles.field}>
+                <Text style={styles.label}>
+                  Token de recuperação
+                </Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite o token recebido"
+                  placeholderTextColor="#9CA8BA"
+                  value={token}
+                  onChangeText={setToken}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            )}
+
+            <View style={styles.field}>
+              <Text style={styles.label}>
+                Nova senha
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Mínimo de 8 caracteres"
+                placeholderTextColor="#9CA8BA"
+                value={novaSenha}
+                onChangeText={setNovaSenha}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>
+                Confirmar nova senha
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Digite novamente"
+                placeholderTextColor="#9CA8BA"
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+
+            <Pressable
+              style={[
+                styles.submitButton,
+                carregando && styles.disabled,
+              ]}
+              disabled={carregando}
+              onPress={redefinirSenha}
+            >
+              <LinearGradient
+                colors={["#071D49", "#1557B0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+
               {carregando ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>Alterar senha</Text>
+                <Text style={styles.submitText}>
+                  Redefinir senha
+                </Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -151,70 +237,156 @@ export default function RedefinirSenhaScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F4F7FB",
+    backgroundColor: "#F4F7FC",
   },
 
-  container: {
+  page: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 35,
-  },
-
-  back: {
-    color: "#1468D8",
-    fontWeight: "800",
-    marginBottom: 40,
-  },
-
-  title: {
-    fontSize: 34,
-    fontWeight: "900",
-    color: "#061A40",
-  },
-
-  subtitle: {
-    color: "#64748B",
-    lineHeight: 21,
-    marginTop: 10,
-    marginBottom: 30,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 24,
   },
 
   card: {
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 22,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#E2EAF4",
+    borderColor: "#E1E7F0",
+    paddingHorizontal: 22,
+    paddingVertical: 30,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#071D49",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+
+  topLine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+  },
+
+  backButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#F3F6FB",
+    borderWidth: 1,
+    borderColor: "#E2E8F1",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 28,
+  },
+
+  backText: {
+    color: "#071D49",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  header: {
+    marginBottom: 28,
+  },
+
+  badge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EDF3FC",
+    color: "#071D49",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.3,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+
+  title: {
+    color: "#071D49",
+    fontSize: 27,
+    fontWeight: "800",
+    letterSpacing: -0.7,
+    marginBottom: 10,
+  },
+
+  description: {
+    color: "#6B7280",
+    fontSize: 15,
+    lineHeight: 25,
+  },
+
+  field: {
+    marginBottom: 18,
   },
 
   label: {
-    color: "#334155",
+    color: "#111827",
+    fontSize: 13,
     fontWeight: "700",
     marginBottom: 8,
   },
 
   input: {
-    minHeight: 55,
-    borderRadius: 14,
+    minHeight: 52,
     borderWidth: 1,
-    borderColor: "#DCE6F2",
-    backgroundColor: "#F8FBFF",
+    borderColor: "#DBE3EF",
+    borderRadius: 11,
+    backgroundColor: "#FBFCFE",
     paddingHorizontal: 15,
-    marginBottom: 18,
-    color: "#0F172A",
+    color: "#111827",
+    fontSize: 16,
   },
 
-  button: {
-    minHeight: 56,
-    borderRadius: 14,
-    backgroundColor: "#0B5CC6",
-    alignItems: "center",
+  submitButton: {
+    minHeight: 52,
+    marginTop: 8,
+    borderRadius: 11,
+    overflow: "hidden",
     justifyContent: "center",
-    marginTop: 5,
+    alignItems: "center",
   },
 
-  buttonText: {
+  submitText: {
     color: "#FFFFFF",
-    fontWeight: "900",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  disabled: {
+    opacity: 0.6,
+  },
+
+  errorBox: {
+    padding: 13,
+    backgroundColor: "#FFF1F0",
+    borderColor: "#FFD3CF",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  errorText: {
+    color: "#B42318",
+    fontSize: 13,
+  },
+
+  successBox: {
+    padding: 13,
+    backgroundColor: "#EDF9F2",
+    borderColor: "#CCEBD9",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  successText: {
+    color: "#137A4B",
+    fontSize: 13,
   },
 });

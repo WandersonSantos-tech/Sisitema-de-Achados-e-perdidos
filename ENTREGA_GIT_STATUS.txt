@@ -1,0 +1,58 @@
+ M .gitignore
+ M backend/.env.example
+ M backend/app/api/deps.py
+ M backend/app/api/v1/endpoints/auth.py
+ M backend/app/api/v1/endpoints/claims.py
+ M backend/app/api/v1/endpoints/integrations.py
+ M backend/app/api/v1/endpoints/security.py
+ M backend/app/core/config.py
+ M backend/app/main.py
+ M backend/app/models/user.py
+ M backend/app/schemas/user.py
+ M backend/app/services/auth_service.py
+ M backend/app/services/dsgner_service.py
+ M backend/app/services/email_service.py
+ M backend/app/services/two_factor_service.py
+ M backend/requirements-dev.txt
+ M backend/requirements.txt
+ M backend/tests/conftest.py
+ M backend/tests/test_admin_flows.py
+ M backend/validation/test_flow.py
+ M frontend/src/components/DevolucaoFlow.jsx
+ M frontend/src/pages/Usuario/SolicitacoesPage.jsx
+ M frontend/src/pages/Usuario/UsuarioSupportPage.jsx
+ M frontend/src/pages/auth/LoginPage.jsx
+ M frontend/src/pages/funcionario/AdminPage/AdminPage.jsx
+ M frontend/src/routes/AppRoutes.jsx
+ M frontend/src/services/authService.js
+ M frontend/src/services/claimService.js
+ M mobile/app.json
+ M mobile/src/contexts/AuthContext.jsx
+ M mobile/src/navigation/AppNavigator.jsx
+ M mobile/src/screens/auth/LoginScreen.jsx
+ M mobile/src/screens/usuario/SolicitacoesScreen.jsx
+ M mobile/src/screens/usuario/UsuarioSupportScreen.jsx
+ M mobile/src/services/authService.js
+ M mobile/tests/api.test.cjs
+ M mobile/tests/helpers.cjs
+?? ARQUIVOS_INTEGRACOES.txt
+?? ENTREGA_DIFF.patch
+?? ENTREGA_GIT_STATUS.txt
+?? ENTREGA_INTEGRACOES.md
+?? backend/alembic/versions/c20261114_auth.py
+?? backend/app/core/auth_limits.py
+?? backend/app/services/return_signature_service.py
+?? backend/scripts/
+?? backend/security-results-local.txt
+?? backend/test-results-local.txt
+?? backend/tests/test_security_flows.py
+?? frontend/build-results-local.txt
+?? frontend/lint-results-local.txt
+?? frontend/src/components/ReturnSignatureStatus.jsx
+?? frontend/src/pages/auth/TwoFactorPage.jsx
+?? mobile/android-export-results-local.txt
+?? mobile/mobile/
+?? mobile/src/components/ReturnSignatureStatus.jsx
+?? mobile/src/screens/usuario/TwoFactorScreen.jsx
+?? mobile/test-results-local.txt
+?? mobile/tests/security.test.cjs
