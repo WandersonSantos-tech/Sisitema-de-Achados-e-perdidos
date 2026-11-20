@@ -157,6 +157,7 @@ export default function LoginScreen({ navigation }) {
     };
   }, []);
 
+  
   async function handleSubmit() {
     if (submitting.current) return;
 
@@ -171,17 +172,32 @@ export default function LoginScreen({ navigation }) {
     setCarregando(true);
 
     try {
-      const result = await login(email.trim(), senha, challenge, code);
-      if (result?.requires_2fa) setChallenge(result.challenge_token);
-        } catch (error) {
-      if (isMounted.current) {
-        const status = error?.status;
+      const result = await login(
+        email.trim(),
+        senha,
+        null,
+        null
+      );
 
+      if (result?.requires_2fa && result?.challenge_token) {
+        navigation.navigate("VerificacaoEmail", {
+          email: email.trim(),
+          challengeToken: result.challenge_token,
+        });
+        return;
+      }
+
+      // Não permitir login sem concluir a verificação.
+      if (!result?.usuario) {
         setErro(
-          status === 401
-            ? "E-mail ou senha inválidos."
-            : error?.message ||
-                "Não foi possível realizar o acesso."
+          "Não foi possível iniciar a verificação de segurança."
+        );
+      }
+    } catch (error) {
+      if (isMounted.current) {
+        setErro(
+          error?.message ||
+            "Não foi possível realizar o acesso."
         );
       }
     } finally {
@@ -192,6 +208,7 @@ export default function LoginScreen({ navigation }) {
       }
     }
   }
+
 
   return (
     <SafeAreaView style={styles.safe}>

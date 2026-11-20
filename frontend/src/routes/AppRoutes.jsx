@@ -11,6 +11,7 @@ import MeusItensPage from "../pages/Usuario/MeusItensPage";
 import ItemDetalhePage from "../pages/Usuario/ItemDetalhePage";
 import SolicitacoesPage from "../pages/Usuario/SolicitacoesPage";
 import ItemPerdidoPage from "../pages/Usuario/ItemPerdidoPage";
+import VerificacaoEmailPage from "../pages/auth/VerificacaoEmailPage";
 
 import { useEffect, useState } from "react";
 import { authService } from "../services/authService";
@@ -119,6 +120,10 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/verificar-email"
+        element={<VerificacaoEmailPage />}
+      />
 
       <Route path="/cadastro" element={<CadastroPage />} />
 

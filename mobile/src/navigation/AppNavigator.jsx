@@ -13,6 +13,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 
 import Login from "../screens/auth/LoginScreen";
+import VerificacaoEmail from "../screens/auth/VerificacaoEmailScreen";
 import Cadastro from "../screens/auth/CadastroScreen";
 import RecuperarSenha from "../screens/auth/RecuperarSenhaScreen";
 import RedefinirSenha from "../screens/auth/RedefinirSenhaScreen";
@@ -101,6 +102,8 @@ export default function AppNavigator() {
       >
         {autenticado ? (
           <Stack.Group navigationKey="user">
+
+            {/* TELA INICIAL DO USUÁRIO */}
             <Stack.Screen
               name="UsuarioHome"
               component={Home}
@@ -166,13 +169,26 @@ export default function AppNavigator() {
               component={Ajuda}
               options={{ title: "Ajuda" }}
             />
+
           </Stack.Group>
         ) : (
           <Stack.Group navigationKey="guest">
+
+            {/* LOGIN */}
             <Stack.Screen
               name="Login"
               component={Login}
               options={{ headerShown: false }}
+            />
+
+            {/* VERIFICAÇÃO 2FA OBRIGATÓRIA */}
+            <Stack.Screen
+              name="VerificacaoEmail"
+              component={VerificacaoEmail}
+              options={{
+                headerShown: false,
+                gestureEnabled: false,
+              }}
             />
 
             <Stack.Screen
@@ -186,6 +202,7 @@ export default function AppNavigator() {
               component={RecuperarSenha}
               options={{ headerShown: false }}
             />
+
           </Stack.Group>
         )}
 

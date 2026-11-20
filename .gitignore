@@ -22,3 +22,8 @@ mobile/.expo/
 achados e perdidos/
 
 .venv/
+
+/mobile.zip
+/mobile_android/
+*.zip
+**/dist-local/

@@ -7,8 +7,6 @@ function LoginPage() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
 
-  const [challenge, setChallenge] = useState(null);
-  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
@@ -26,6 +24,7 @@ function LoginPage() {
     };
   }, []);
 
+  
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -39,63 +38,52 @@ function LoginPage() {
     try {
       setCarregando(true);
 
-      // Realiza a autenticação via authService
-      const result = await authService.login(email.trim(), senha, challenge, code);
-      if (result.requires_2fa) { setChallenge(result.challenge_token); setCarregando(false); return; }
-      const { usuario } = result;
+      const result = await authService.login(
+        email.trim(),
+        senha,
+        null,
+        null,
+        modoFuncionario ? "STAFF" : "USER"
+      );
 
-      if (!isMounted.current) return;
+      if (result?.requires_2fa && result?.challenge_token) {
+        navigate("/verificar-email", {
+          replace: true,
+          state: {
+            email: email.trim(),
+            challengeToken: result.challenge_token,
+            modoFuncionario,
+          },
+        });
 
-      const role = usuario?.role;
-
-      // Validação de acesso para a Área de Funcionário (ADMIN ou COLABORADOR)
-      if (modoFuncionario) {
-        if (role !== "ADMIN" && role !== "COLABORADOR") {
-          authService.logout();
-          if (isMounted.current) {
-            setErro("Esta conta não possui permissão de acesso à área operacional.");
-            setCarregando(false);
-          }
-          return;
-        }
-
-        navigate("/funcionario/dashboard", { replace: true });
         return;
       }
 
-      // Validação para o Acesso Padrão do Usuário
-      if (role === "USER") {
-        navigate("/usuario/home", { replace: true });
-        return;
-      }
-
-      // Redirecionamento caso ADMIN ou COLABORADOR façam login pelo fluxo padrão
-      if (role === "ADMIN" || role === "COLABORADOR") {
-        navigate("/funcionario/dashboard", { replace: true });
-        return;
-      }
-
-      // Perfil não reconhecido no sistema
+      // Nunca permitir acesso direto sem validar o 2FA.
       authService.logout();
-      if (isMounted.current) {
-        setErro("Tipo de usuário não reconhecido pelo sistema.");
-        setCarregando(false);
-      }
 
+      if (isMounted.current) {
+        setErro(
+          "Não foi possível iniciar a verificação de segurança. Tente novamente."
+        );
+      }
     } catch (error) {
       if (isMounted.current) {
         setErro(
           error.message ||
-          "Não foi possível realizar o acesso. Verifique suas credenciais."
+            "Não foi possível realizar o acesso. Verifique suas credenciais."
         );
+      }
+    } finally {
+      if (isMounted.current) {
         setCarregando(false);
       }
     }
   }
 
+
+
   function alterarModo() {
-    setChallenge(null);
-    setCode("");
     setModoFuncionario((prev) => !prev);
     setEmail("");
     setSenha("");
@@ -213,13 +201,6 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {challenge && <div className="form-group">
-              <label htmlFor="otp">Código do autenticador</label>
-              <div className="input-container"><span className="input-icon">#</span>
-                <input id="otp" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0,6))} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required disabled={carregando} />
-              </div>
-              <button type="button" className="forgot-password" disabled={carregando} onClick={() => { setChallenge(null); setCode(""); }}>Cancelar verificação</button>
-            </div>}
             {erro && (
               <div className="error-message" role="alert">
                 <span>!</span>
@@ -228,8 +209,8 @@ function LoginPage() {
             )}
 
             <div className="form-group">
-              <label htmlFor="email">E-mail</label>
 
+              <label htmlFor="email">E-mail</label>
               <div className="input-container">
                 <span className="input-icon">@</span>
 
@@ -292,7 +273,7 @@ function LoginPage() {
               type="submit"
               disabled={carregando}
             >
-              {carregando ? (
+             {carregando ? (
                 <span>Validando acesso...</span>
               ) : modoFuncionario ? (
                 <span>Entrar no painel</span>

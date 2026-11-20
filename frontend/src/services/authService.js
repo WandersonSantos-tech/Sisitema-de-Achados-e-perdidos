@@ -1,4 +1,6 @@
+
 import { apiRequest } from "./api";
+
 const LOGIN_ENDPOINT = "/auth/login";
 const ME_ENDPOINT = "/auth/me";
 const REGISTER_ENDPOINT = "/auth/register";
@@ -6,14 +8,41 @@ const FORGOT_PASSWORD_ENDPOINT = "/auth/forgot-password";
 const RESET_PASSWORD_ENDPOINT = "/auth/reset-password";
 
 export const authService = {
-  async login(email, senha, challengeToken = null, code = null) {
-    const data = await apiRequest(challengeToken ? "/auth/2fa/verify" : LOGIN_ENDPOINT, {
-      method: "POST",
+  async login(
+    email,
+    senha,
+    challengeToken = null,
+    code = null,
+    accessMode = "USER"
+  ) {
+    const endpoint = challengeToken
+      ? "/auth/2fa/verify"
+      : LOGIN_ENDPOINT;
 
-      body: JSON.stringify(challengeToken ? { challenge_token: challengeToken, code } : { email, password: senha }),
+    const payload = challengeToken
+      ? {
+          challenge_token: challengeToken,
+          code,
+        }
+      : {
+          email,
+          password: senha,
+          access_mode: accessMode,
+        };
+
+    const data = await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify(payload),
     });
 
-    if (data.requires_2fa) { this.logout(); return data; }
+    // Primeira etapa: login e senha.
+    // O usuário ainda precisa validar o código do e-mail.
+    if (data.requires_2fa) {
+      this.logout();
+      return data;
+    }
+
+    // Segunda etapa: código 2FA validado.
     const token = data.access_token;
 
     if (!token) {
@@ -22,27 +51,29 @@ export const authService = {
       );
     }
 
-    localStorage.setItem(
-      "access_token",
-      token
-    );
+    localStorage.setItem("access_token", token);
 
-    const usuario = await apiRequest(ME_ENDPOINT, {
-      method: "GET",
-    });
+    let usuario;
 
-    if (!usuario) {
-      localStorage.removeItem("access_token");
+    try {
+      usuario = await apiRequest(ME_ENDPOINT, {
+        method: "GET",
+      });
 
-      throw new Error(
-        "Não foi possível carregar os dados do usuário."
+      if (!usuario) {
+        throw new Error(
+          "Não foi possível carregar os dados do usuário."
+        );
+      }
+
+      localStorage.setItem(
+        "usuario",
+        JSON.stringify(usuario)
       );
+    } catch (error) {
+      this.logout();
+      throw error;
     }
-
-    localStorage.setItem(
-      "usuario",
-      JSON.stringify(usuario)
-    );
 
     return {
       token,
@@ -53,7 +84,6 @@ export const authService = {
   async cadastrar(nome, cpf, email, telefone, senha) {
     return apiRequest(REGISTER_ENDPOINT, {
       method: "POST",
-
       body: JSON.stringify({
         name: nome,
         cpf: cpf.replace(/\D/g, ""),
@@ -67,7 +97,6 @@ export const authService = {
   async recuperarSenha(email) {
     return apiRequest(FORGOT_PASSWORD_ENDPOINT, {
       method: "POST",
-
       body: JSON.stringify({
         email,
       }),
@@ -77,7 +106,6 @@ export const authService = {
   async redefinirSenha(token, novaSenha) {
     return apiRequest(RESET_PASSWORD_ENDPOINT, {
       method: "POST",
-
       body: JSON.stringify({
         token,
         new_password: novaSenha,
@@ -108,8 +136,7 @@ export const authService = {
   },
 
   getUsuario() {
-    const usuario =
-      localStorage.getItem("usuario");
+    const usuario = localStorage.getItem("usuario");
 
     if (!usuario) {
       return null;
