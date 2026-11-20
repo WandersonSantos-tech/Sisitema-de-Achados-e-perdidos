@@ -1,0 +1,392 @@
+{
+  "source": "https://api-ondeta-5170584.wonderfulstone-40977343.canadacentral.azurecontainerapps.io/openapi.json",
+  "checked_at": "2026-11-07",
+  "paths": {
+    "/api/v1/auth/register": [
+      "post"
+    ],
+    "/api/v1/auth/login": [
+      "post"
+    ],
+    "/api/v1/auth/forgot-password": [
+      "post"
+    ],
+    "/api/v1/auth/reset-password": [
+      "post"
+    ],
+    "/api/v1/auth/me": [
+      "get"
+    ],
+    "/api/v1/items/lost": [
+      "post"
+    ],
+    "/api/v1/items/found": [
+      "post"
+    ],
+    "/api/v1/items": [
+      "get"
+    ],
+    "/api/v1/items/{item_id}": [
+      "get",
+      "patch",
+      "delete"
+    ],
+    "/api/v1/items/{item_id}/matches": [
+      "get"
+    ],
+    "/api/v1/items/{item_id}/images": [
+      "post"
+    ],
+    "/api/v1/notifications": [
+      "get"
+    ],
+    "/api/v1/notifications/{notification_id}/read": [
+      "patch"
+    ],
+    "/api/v1/notifications/{notification_id}": [
+      "get"
+    ],
+    "/api/v1/categories": [
+      "get"
+    ],
+    "/api/v1/claims/items/{item_id}/claims": [
+      "post",
+      "get"
+    ],
+    "/api/v1/claims/claims/{claim_id}/status": [
+      "patch"
+    ],
+    "/api/v1/claims/my-claims": [
+      "get"
+    ],
+    "/api/v1/claims/claims/{claim_id}/start-negotiation": [
+      "post"
+    ],
+    "/api/v1/claims/claims/{claim_id}/pickup": [
+      "patch"
+    ],
+    "/api/v1/claims/claims/{claim_id}/return": [
+      "post"
+    ],
+    "/api/v1/messages/items/{item_id}/messages": [
+      "post",
+      "get"
+    ],
+    "/api/v1/messages/claims/{claim_id}/contact": [
+      "get"
+    ],
+    "/health": [
+      "get"
+    ],
+    "/api/v1/items/{item_id}/reviews": [
+      "post",
+      "get"
+    ],
+    "/api/v1/users/{user_id}/reviews": [
+      "get"
+    ]
+  },
+  "schemas": {
+    "UserCreate": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Phone"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "title": "Password"
+        },
+        "cpf": {
+          "type": "string",
+          "maxLength": 14,
+          "minLength": 11,
+          "title": "Cpf"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "email",
+        "password",
+        "cpf"
+      ],
+      "title": "UserCreate"
+    },
+    "ItemCreate": {
+      "properties": {
+        "category_id": {
+          "type": "integer",
+          "title": "Category Id"
+        },
+        "type": {
+          "type": "string",
+          "title": "Type",
+          "description": "PERDIDO ou ENCONTRADO"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 150,
+          "minLength": 3,
+          "title": "Title"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "title": "Description"
+        },
+        "secret_details": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Secret Details"
+        },
+        "location_name": {
+          "type": "string",
+          "maxLength": 255,
+          "title": "Location Name"
+        },
+        "height_cm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Height Cm",
+          "description": "Altura aproximada do objeto em cent\u00edmetros"
+        },
+        "width_cm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Width Cm",
+          "description": "Largura aproximada do objeto em cent\u00edmetros"
+        },
+        "event_date": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Event Date"
+        }
+      },
+      "type": "object",
+      "required": [
+        "category_id",
+        "type",
+        "title",
+        "description",
+        "location_name",
+        "event_date"
+      ],
+      "title": "ItemCreate",
+      "description": "DTO para cria\u00e7\u00e3o de item"
+    },
+    "ItemUpdate": {
+      "properties": {
+        "category_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category Id"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 150,
+              "minLength": 3
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 10
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Description"
+        },
+        "secret_details": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Secret Details"
+        },
+        "location_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Location Name"
+        },
+        "height_cm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Height Cm"
+        },
+        "width_cm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Width Cm"
+        },
+        "event_date": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Date"
+        }
+      },
+      "type": "object",
+      "title": "ItemUpdate",
+      "description": "DTO para atualiza\u00e7\u00e3o de item"
+    },
+    "MessageCreate": {
+      "properties": {
+        "content": {
+          "type": "string",
+          "maxLength": 5000,
+          "minLength": 1,
+          "title": "Content"
+        },
+        "receiver_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Receiver Id"
+        }
+      },
+      "type": "object",
+      "required": [
+        "content",
+        "receiver_id"
+      ],
+      "title": "MessageCreate",
+      "description": "Schema para envio de mensagem"
+    },
+    "ClaimCreate": {
+      "properties": {
+        "proof_description": {
+          "type": "string",
+          "title": "Proof Description"
+        }
+      },
+      "type": "object",
+      "required": [
+        "proof_description"
+      ],
+      "title": "ClaimCreate",
+      "description": "Schema para cria\u00e7\u00e3o de reivindica\u00e7\u00e3o de item"
+    },
+    "ReviewCreate": {
+      "properties": {
+        "rating": {
+          "type": "integer",
+          "maximum": 5.0,
+          "minimum": 1.0,
+          "title": "Rating",
+          "description": "Nota de 1 a 5 estrelas"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comment",
+          "description": "Coment\u00e1rio opcional"
+        }
+      },
+      "type": "object",
+      "required": [
+        "rating"
+      ],
+      "title": "ReviewCreate",
+      "description": "Schema para cria\u00e7\u00e3o de avalia\u00e7\u00e3o de usu\u00e1rio"
+    }
+  }
+}

@@ -27,3 +27,14 @@ achados e perdidos/
 /mobile_android/
 *.zip
 **/dist-local/
+# Android - arquivos locais e temporarios
+/mobile_android/mobile/.git/
+/mobile_android/mobile/node_modules/
+/mobile_android/mobile/.expo/
+/mobile_android/mobile/eas-inspect/
+/mobile_android/mobile/eas-inspect-novo/
+/mobile_android/mobile/dist-local/
+/mobile_android/mobile/google-services.json
+/mobile_android/mobile/.env
+/mobile_android/mobile/.env.*
+!/mobile_android/mobile/.env.example
