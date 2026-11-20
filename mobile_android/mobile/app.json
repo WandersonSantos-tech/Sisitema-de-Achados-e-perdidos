@@ -1,0 +1,53 @@
+
+{
+  "expo": {
+    "name": "OndeTá",
+    "slug": "ondeta-mobile",
+    "scheme": "ondeta",
+    "version": "1.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wanderson.ondeta",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    
+    "android": {
+      "package": "com.wanderson.ondeta",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o OndeTá acesse fotos para registrar seu objeto perdido.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ca857fc6-e1f1-42c5-abfc-20deeaad2b49"
+      }
+    }
+  }
+}
