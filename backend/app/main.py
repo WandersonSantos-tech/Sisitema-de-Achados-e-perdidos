@@ -20,6 +20,9 @@ from app.api.v1.endpoints.messages import router as messages_router
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.integrations import router as integrations_router
 from app.api.v1.endpoints.security import router as security_router
+from app.api.v1.endpoints.push_devices import router as push_devices_router
+
+import app.services.push_service
 
 
 UPLOAD_PATH = Path(settings.UPLOAD_DIR).expanduser().resolve()
@@ -92,6 +95,7 @@ app.include_router(messages_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(integrations_router, prefix=settings.API_V1_STR)
 app.include_router(security_router, prefix=settings.API_V1_STR)
+app.include_router(push_devices_router,prefix=settings.API_V1_STR,)
 
 
 @app.get("/health")

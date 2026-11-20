@@ -17,6 +17,7 @@ from app.models.review import Review
 from app.models.status_history import StatusHistory
 from app.models.user import User
 from app.models.match_dispatch import MatchDispatch
+from app.models.push_device import PushDevice
 
 __all__ = [
     "Base",
